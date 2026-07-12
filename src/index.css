@@ -1,12 +1,36 @@
 /* Global resets and base tokens (mobile-first) */
 
 :root {
-  --text: #111827;
-  --muted: #6b7280;
-  --border: #e5e7eb;
-  --brand: #2b7cff;
-  --brand-600: #1f6af0;
+  --text: #17233b;
+  --muted: #6f7480;
+  --border: #ddd7ca;
+  --brand: #1f5bbe;
+  --brand-600: #174795;
+  --brand-soft: #e8eef9;
+  --surface: #fffcf5;
+  --surface-muted: #f0ece3;
+  --page-bg: #f5f1e8;
+  --danger: #c72c41;
+  --success: #9a6b05;
+  --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 12px 30px rgba(15, 23, 42, 0.08);
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
   color-scheme: light;
+  --font-display: "Space Grotesk", Inter, sans-serif;
+  --font-body: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --accent-primary: #1f5bbe;
+  --accent-primary-bright: #2d6dce;
+  --accent-secondary: #c72c41;
+  --finance-income: #b7810f;
+  --finance-expense: #c72c41;
+  --finance-balance: #1f5bbe;
+  --chart-income: #d1a22a;
+  --chart-expense: #d83a50;
+  --chart-balance: #2c6fd1;
+  --aurora-one: rgba(31, 91, 190, 0.16);
+  --aurora-two: rgba(209, 162, 42, 0.17);
 }
 
 * { box-sizing: border-box; }
@@ -17,10 +41,9 @@ body {
   color: var(--text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
-    Ubuntu, Cantarell, "Helvetica Neue", Arial, "Apple Color Emoji",
-    "Segoe UI Emoji";
-  background: #f6f7f9;
+  font-family: var(--font-body);
+  background: var(--page-bg);
+  transition: background-color 180ms ease, color 180ms ease;
 }
 
 /* Typography */
@@ -37,10 +60,74 @@ a:hover { color: var(--brand-600); }
 
 /* Layout container */
 .container {
-  width: min(1100px, 92%);
+  width: min(1180px, calc(100% - 32px));
   margin: 0 auto;
 }
 
 /* Page spacing */
 .page { padding: 0; }
 
+button, input, select, textarea { font: inherit; }
+button, a { -webkit-tap-highlight-color: transparent; }
+
+body.theme-dark {
+  --text: #f8fafc;
+  --muted: #94a3b8;
+  --border: #263449;
+  --brand: #60a5fa;
+  --brand-600: #93c5fd;
+  --brand-soft: #172554;
+  --surface: #101827;
+  --surface-muted: #0d1524;
+  --page-bg: #080f1d;
+  --shadow-sm: none;
+  --shadow-md: 0 18px 42px rgba(0, 0, 0, 0.28);
+  color-scheme: dark;
+  background: var(--page-bg);
+}
+
+[data-theme="dark"] {
+  --text: #f7f2e8;
+  --muted: #a8afbd;
+  --border: #2a3a58;
+  --brand: #6ea8ff;
+  --brand-600: #91bdff;
+  --brand-soft: #172c50;
+  --surface: #121e35;
+  --surface-muted: #182641;
+  --page-bg: #0c1426;
+  --accent-primary: #5b8ff0;
+  --accent-primary-bright: #79adff;
+  --accent-secondary: #f15b6c;
+  --finance-income: #e6b94b;
+  --finance-expense: #f15b6c;
+  --finance-balance: #6ea8ff;
+  --chart-income: #e6b94b;
+  --chart-expense: #f15b6c;
+  --chart-balance: #6ea8ff;
+  --aurora-one: rgba(91, 143, 240, 0.22);
+  --aurora-two: rgba(230, 185, 75, 0.17);
+  --shadow-sm: 0 8px 24px rgba(0, 0, 0, 0.18);
+  --shadow-md: 0 24px 60px rgba(0, 0, 0, 0.32);
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  --text: #17233b;
+  --muted: #6f7480;
+  --border: #ddd7ca;
+  --brand: #1f5bbe;
+  --brand-600: #174795;
+  --brand-soft: #e8eef9;
+  --surface: #fffcf5;
+  --surface-muted: #f0ece3;
+  --page-bg: #f5f1e8;
+  color-scheme: light;
+}
+
+h1, h2, h3, h4, h5, h6,
+.card-value, .brand-text { font-family: var(--font-display); }
+
+@media (max-width: 480px) {
+  .container { width: min(100% - 22px, 1180px); }
+}

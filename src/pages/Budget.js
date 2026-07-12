@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useFinance } from '../context/FinanceContext';
 import ProgressBar from '../components/ProgressBar';
 import { totalExpensesThisMonth, categorySumsThisMonth } from '../utils/calculateBudgets';
@@ -12,14 +12,32 @@ export default function Budget() {
     Rent: String(budget?.categories?.Rent || ''),
     Other: String(budget?.categories?.Other || ''),
   });
+  const [status, setStatus] = useState('');
+  const [error, setError] = useState('');
 
-  function handleSubmit(e) {
+  useEffect(() => {
+    setTotal(String(budget?.total || ''));
+    setCats({
+      Food: String(budget?.categories?.Food || ''),
+      Transport: String(budget?.categories?.Transport || ''),
+      Rent: String(budget?.categories?.Rent || ''),
+      Other: String(budget?.categories?.Other || ''),
+    });
+  }, [budget]);
+
+  async function handleSubmit(e) {
     e.preventDefault();
+    setStatus('');
+    setError('');
     const catNums = Object.fromEntries(
       Object.entries(cats).map(([k, v]) => [k, Number(v) || 0])
     );
-    setBudget(Number(total) || 0, catNums);
-    alert('Budget saved');
+    try {
+      await setBudget(Number(total) || 0, catNums);
+      setStatus('Budget saved.');
+    } catch (err) {
+      setError(err?.message || 'Failed to save budget.');
+    }
   }
 
   const usedTotal = totalExpensesThisMonth(expenses);
@@ -45,6 +63,8 @@ export default function Budget() {
           </div>
         ))}
 
+        {error && <div className="error" role="alert">{error}</div>}
+        {status && <div role="status" style={{ color: '#065f46', fontSize: 13 }}>{status}</div>}
         <button className="btn" type="submit">Save Budget</button>
       </form>
 

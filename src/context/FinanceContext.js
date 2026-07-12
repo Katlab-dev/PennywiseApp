@@ -84,6 +84,33 @@ function pathHelpers(uid) {
   };
 }
 
+function requireUser(user) {
+  if (!user?.uid) throw new Error('You must be signed in to make this change.');
+  return user.uid;
+}
+
+function cleanText(value, field, maxLength = 120, required = true) {
+  const text = String(value ?? '').trim();
+  if (required && !text) throw new Error(`${field} is required.`);
+  if (text.length > maxLength) throw new Error(`${field} must be ${maxLength} characters or fewer.`);
+  return text;
+}
+
+function cleanAmount(value, field = 'Amount', allowZero = false) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount < 0 || (!allowZero && amount === 0)) {
+    throw new Error(`${field} must be a valid ${allowZero ? 'non-negative' : 'positive'} number.`);
+  }
+  if (amount > 1000000000) throw new Error(`${field} is too large.`);
+  return amount;
+}
+
+function cleanDate(value, field, required = true) {
+  const date = cleanText(value, field, 10, required);
+  if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error(`${field} must be a valid date.`);
+  return date;
+}
+
 export function FinanceProvider({ children }) {
   const { currentUser } = useAuth();
   const [state, dispatch] = useReducer(financeReducer, initialState);
@@ -119,6 +146,7 @@ export function FinanceProvider({ children }) {
         },
         (err) => {
           console.error('Expenses snapshot error:', err);
+          setError('Unable to load expenses.');
           mark('e');
         }
       )
@@ -134,6 +162,7 @@ export function FinanceProvider({ children }) {
         },
         (err) => {
           console.error('Incomes snapshot error:', err);
+          setError('Unable to load income.');
           mark('i');
         }
       )
@@ -149,6 +178,7 @@ export function FinanceProvider({ children }) {
         },
         (err) => {
           console.error('Goals snapshot error:', err);
+          setError('Unable to load goals.');
           mark('g');
         }
       )
@@ -170,6 +200,7 @@ export function FinanceProvider({ children }) {
         },
         (err) => {
           console.error('Budget snapshot error:', err);
+          setError('Unable to load the budget.');
           mark('b');
         }
       )
@@ -178,141 +209,195 @@ export function FinanceProvider({ children }) {
     return () => unsubs.forEach((u) => {
       try { u && u(); } catch {}
     });
-  }, [currentUser?.uid]);
+  }, [currentUser]);
 
   // Actions -> Firestore
   const addExpense = useCallback(async (data) => {
-    if (!currentUser?.uid) return;
+    const uid = requireUser(currentUser);
     try {
-      const { expensesCol } = pathHelpers(currentUser.uid);
+      setError('');
+      const { expensesCol } = pathHelpers(uid);
       const payload = {
-        title: data.title,
-        amount: Number(data.amount) || 0,
-        category: data.category || 'Other',
-        date: data.date || '',
+        title: cleanText(data.title, 'Title'),
+        amount: cleanAmount(data.amount),
+        category: cleanText(data.category || 'Other', 'Category', 60),
+        date: cleanDate(data.date, 'Date'),
+        notes: cleanText(data.notes, 'Notes', 500, false),
         type: 'expense',
         createdAt: serverTimestamp(),
       };
-      const ref = await addDoc(expensesCol, payload);
-      dispatch({ type: ADD_EXPENSE, payload: { id: ref.id, ...payload, createdAt: new Date().toISOString() } });
+      await addDoc(expensesCol, payload);
     } catch (e) {
       console.error('Failed to add expense:', e);
-      alert('Failed to add expense. Please try again.');
+      setError(e.message || 'Failed to add expense.');
+      throw e;
     }
-  }, [currentUser?.uid]);
+  }, [currentUser]);
 
   const addIncome = useCallback(async (data) => {
-    if (!currentUser?.uid) return;
+    const uid = requireUser(currentUser);
     try {
-      const { incomesCol } = pathHelpers(currentUser.uid);
+      setError('');
+      const { incomesCol } = pathHelpers(uid);
       const payload = {
-        title: data.title,
-        amount: Number(data.amount) || 0,
-        category: data.category || '-',
-        date: data.date || '',
+        title: cleanText(data.title, 'Source'),
+        amount: cleanAmount(data.amount),
+        category: cleanText(data.category || '-', 'Category', 60),
+        date: cleanDate(data.date, 'Date'),
+        notes: cleanText(data.notes, 'Notes', 500, false),
         type: 'income',
         createdAt: serverTimestamp(),
       };
-      const ref = await addDoc(incomesCol, payload);
-      dispatch({ type: ADD_INCOME, payload: { id: ref.id, ...payload, createdAt: new Date().toISOString() } });
+      await addDoc(incomesCol, payload);
     } catch (e) {
       console.error('Failed to add income:', e);
-      alert('Failed to add income. Please try again.');
+      setError(e.message || 'Failed to add income.');
+      throw e;
     }
-  }, [currentUser?.uid]);
+  }, [currentUser]);
 
   const addGoal = useCallback(async (data) => {
-    if (!currentUser?.uid) return;
+    const uid = requireUser(currentUser);
     try {
-      const { goalsCol } = pathHelpers(currentUser.uid);
+      setError('');
+      const { goalsCol } = pathHelpers(uid);
       const payload = {
-        title: data.title,
-        target: Number(data.target) || 0,
-        current: Number(data.current) || 0,
-        deadline: data.deadline || '',
+        title: cleanText(data.title, 'Goal title'),
+        target: cleanAmount(data.target, 'Target'),
+        current: cleanAmount(data.current || 0, 'Current amount', true),
+        deadline: cleanDate(data.deadline, 'Deadline', false),
         createdAt: serverTimestamp(),
       };
-      const ref = await addDoc(goalsCol, payload);
-      dispatch({ type: ADD_GOAL, payload: { id: ref.id, ...payload, createdAt: new Date().toISOString() } });
+      if (payload.current > payload.target) throw new Error('Current savings cannot exceed the target.');
+      await addDoc(goalsCol, payload);
     } catch (e) {
       console.error('Failed to add goal:', e);
-      alert('Failed to add goal. Please try again.');
+      setError(e.message || 'Failed to add goal.');
+      throw e;
     }
-  }, [currentUser?.uid]);
+  }, [currentUser]);
 
   const setBudget = useCallback(async (total, categories) => {
-    if (!currentUser?.uid) return;
+    const uid = requireUser(currentUser);
     try {
-      const { budgetDoc } = pathHelpers(currentUser.uid);
+      setError('');
+      const { budgetDoc } = pathHelpers(uid);
+      const allowedCategories = ['Food', 'Transport', 'Rent', 'Other'];
       const payload = {
-        total: Number(total) || 0,
-        categories: { ...(categories || {}) },
+        total: cleanAmount(total, 'Total budget', true),
+        categories: Object.fromEntries(allowedCategories.map((category) => [
+          category,
+          cleanAmount(categories?.[category] || 0, `${category} budget`, true),
+        ])),
         updatedAt: serverTimestamp(),
       };
       await setDoc(budgetDoc, payload, { merge: true });
-      dispatch({ type: SET_BUDGET, payload: { total: payload.total, categories: payload.categories } });
     } catch (e) {
       console.error('Failed to set budget:', e);
-      alert('Failed to save budget. Please try again.');
+      setError(e.message || 'Failed to save budget.');
+      throw e;
     }
-  }, [currentUser?.uid]);
+  }, [currentUser]);
 
   const updateExpense = useCallback(async (id, patch) => {
-    if (!currentUser?.uid || !id) return;
+    const uid = requireUser(currentUser);
+    if (!id) throw new Error('Expense ID is required.');
     try {
-      const ref = doc(db, 'users', currentUser.uid, 'expenses', id);
-      await updateDoc(ref, { ...patch, updatedAt: serverTimestamp() });
+      setError('');
+      const cleanPatch = { ...patch };
+      if ('title' in cleanPatch) cleanPatch.title = cleanText(cleanPatch.title, 'Title');
+      if ('amount' in cleanPatch) cleanPatch.amount = cleanAmount(cleanPatch.amount);
+      if ('category' in cleanPatch) cleanPatch.category = cleanText(cleanPatch.category, 'Category', 60);
+      if ('date' in cleanPatch) cleanPatch.date = cleanDate(cleanPatch.date, 'Date');
+      if ('notes' in cleanPatch) cleanPatch.notes = cleanText(cleanPatch.notes, 'Notes', 500, false);
+      delete cleanPatch.type;
+      delete cleanPatch.createdAt;
+      const ref = doc(db, 'users', uid, 'expenses', id);
+      await updateDoc(ref, { ...cleanPatch, updatedAt: serverTimestamp() });
     } catch (e) {
       console.error('Failed to update expense:', e);
-      alert('Failed to update expense');
+      setError(e.message || 'Failed to update expense.');
+      throw e;
     }
-  }, [currentUser?.uid]);
+  }, [currentUser]);
 
   const updateIncome = useCallback(async (id, patch) => {
-    if (!currentUser?.uid || !id) return;
+    const uid = requireUser(currentUser);
+    if (!id) throw new Error('Income ID is required.');
     try {
-      const ref = doc(db, 'users', currentUser.uid, 'income', id);
-      await updateDoc(ref, { ...patch, updatedAt: serverTimestamp() });
+      setError('');
+      const cleanPatch = { ...patch };
+      if ('title' in cleanPatch) cleanPatch.title = cleanText(cleanPatch.title, 'Source');
+      if ('amount' in cleanPatch) cleanPatch.amount = cleanAmount(cleanPatch.amount);
+      if ('category' in cleanPatch) cleanPatch.category = cleanText(cleanPatch.category, 'Category', 60);
+      if ('date' in cleanPatch) cleanPatch.date = cleanDate(cleanPatch.date, 'Date');
+      if ('notes' in cleanPatch) cleanPatch.notes = cleanText(cleanPatch.notes, 'Notes', 500, false);
+      delete cleanPatch.type;
+      delete cleanPatch.createdAt;
+      const ref = doc(db, 'users', uid, 'income', id);
+      await updateDoc(ref, { ...cleanPatch, updatedAt: serverTimestamp() });
     } catch (e) {
       console.error('Failed to update income:', e);
-      alert('Failed to update income');
+      setError(e.message || 'Failed to update income.');
+      throw e;
     }
-  }, [currentUser?.uid]);
+  }, [currentUser]);
 
   const updateGoal = useCallback(async (id, patch) => {
-    if (!currentUser?.uid || !id) return;
+    const uid = requireUser(currentUser);
+    if (!id) throw new Error('Goal ID is required.');
     try {
-      const ref = doc(db, 'users', currentUser.uid, 'goals', id);
-      await updateDoc(ref, { ...patch, updatedAt: serverTimestamp() });
+      setError('');
+      const existing = state.goals.find((goal) => goal.id === id);
+      const cleanPatch = { ...patch };
+      if ('title' in cleanPatch) cleanPatch.title = cleanText(cleanPatch.title, 'Goal title');
+      if ('target' in cleanPatch) cleanPatch.target = cleanAmount(cleanPatch.target, 'Target');
+      if ('current' in cleanPatch) cleanPatch.current = cleanAmount(cleanPatch.current, 'Current amount', true);
+      if ('deadline' in cleanPatch) cleanPatch.deadline = cleanDate(cleanPatch.deadline, 'Deadline', false);
+      const target = cleanPatch.target ?? existing?.target;
+      const current = cleanPatch.current ?? existing?.current ?? 0;
+      if (Number(current) > Number(target)) throw new Error('Current savings cannot exceed the target.');
+      delete cleanPatch.createdAt;
+      const ref = doc(db, 'users', uid, 'goals', id);
+      await updateDoc(ref, { ...cleanPatch, updatedAt: serverTimestamp() });
     } catch (e) {
       console.error('Failed to update goal:', e);
-      alert('Failed to update goal');
+      setError(e.message || 'Failed to update goal.');
+      throw e;
     }
-  }, [currentUser?.uid]);
+  }, [currentUser, state.goals]);
 
   const deleteTransaction = useCallback(async (id, txType) => {
-    if (!currentUser?.uid || !id) return;
+    const uid = requireUser(currentUser);
+    if (!id) throw new Error('Transaction ID is required.');
     try {
+      setError('');
       if (txType === 'Income') {
-        await deleteDoc(doc(db, 'users', currentUser.uid, 'income', id));
+        await deleteDoc(doc(db, 'users', uid, 'income', id));
       } else if (txType === 'Expense') {
-        await deleteDoc(doc(db, 'users', currentUser.uid, 'expenses', id));
+        await deleteDoc(doc(db, 'users', uid, 'expenses', id));
+      } else {
+        throw new Error('Unknown transaction type.');
       }
     } catch (e) {
       console.error('Failed to delete transaction:', e);
-      alert('Failed to delete');
+      setError(e.message || 'Failed to delete transaction.');
+      throw e;
     }
-  }, [currentUser?.uid]);
+  }, [currentUser]);
 
   const deleteGoal = useCallback(async (id) => {
-    if (!currentUser?.uid || !id) return;
+    const uid = requireUser(currentUser);
+    if (!id) throw new Error('Goal ID is required.');
     try {
-      await deleteDoc(doc(db, 'users', currentUser.uid, 'goals', id));
+      setError('');
+      await deleteDoc(doc(db, 'users', uid, 'goals', id));
     } catch (e) {
       console.error('Failed to delete goal:', e);
-      alert('Failed to delete goal');
+      setError(e.message || 'Failed to delete goal.');
+      throw e;
     }
-  }, [currentUser?.uid]);
+  }, [currentUser]);
 
   const totals = useMemo(() => {
     const incomes = Array.isArray(state.incomes) ? state.incomes : [];

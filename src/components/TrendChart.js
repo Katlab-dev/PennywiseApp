@@ -1,6 +1,8 @@
 import React, { useMemo } from 'react';
 import { useFinance } from '../context/FinanceContext';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import { FinanceTooltip, formatCompactCurrency } from './charts/chartFormatters';
+import './charts/Charts.css';
 
 function ym(dateStr) {
   const d = new Date(dateStr);
@@ -29,22 +31,21 @@ export default function TrendChart({ height = 240 }) {
     return Array.from(buckets.values()).sort((a, b) => (a.month > b.month ? 1 : -1));
   }, [incomes, expenses]);
 
-  if (!data.length) return <div style={{ color: '#6b7280' }}>No data yet</div>;
+  if (!data.length) return <div className="chart-empty">Your monthly trend will appear after you add transactions.</div>;
 
   return (
     <div style={{ width: '100%', height }}>
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
-          <CartesianGrid stroke="#eee" strokeDasharray="3 3" />
+        <BarChart data={data} margin={{ top: 8, right: 8, left: -8, bottom: 8 }} barGap={4}>
+          <CartesianGrid vertical={false} strokeDasharray="4 6" />
           <XAxis dataKey="month" fontSize={12} />
-          <YAxis fontSize={12} />
-          <Tooltip />
-          <Legend />
-          <Bar dataKey="income" name="Income" fill="#16a34a" radius={[6,6,0,0]} />
-          <Bar dataKey="expense" name="Expenses" fill="#ef4444" radius={[6,6,0,0]} />
+          <YAxis tickFormatter={formatCompactCurrency} width={58} />
+          <Tooltip content={<FinanceTooltip />} cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }} />
+          <Legend iconType="circle" iconSize={8} />
+          <Bar dataKey="income" name="Income" fill="var(--chart-income)" radius={[6,6,2,2]} maxBarSize={32} />
+          <Bar dataKey="expense" name="Expenses" fill="var(--chart-expense)" radius={[6,6,2,2]} maxBarSize={32} />
         </BarChart>
       </ResponsiveContainer>
     </div>
   );
 }
-

@@ -2,14 +2,16 @@ import React, { useMemo } from 'react';
 import { useFinance } from '../../context/FinanceContext';
 import {
   ResponsiveContainer,
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   CartesianGrid,
   XAxis,
   YAxis,
   Tooltip,
   Legend,
 } from 'recharts';
+import { FinanceTooltip, formatCompactCurrency } from './chartFormatters';
+import './Charts.css';
 
 function formatDateLabel(dateStr) {
   try {
@@ -44,23 +46,26 @@ export default function IncomeExpenseLineChart({ height = 220 }) {
   }, [incomes, expenses]);
 
   if (data.length === 0) {
-    return <div style={{ color: '#6b7280' }}>Add transactions to see the chart.</div>;
+    return <div className="chart-empty">Add transactions to reveal your cash-flow trend.</div>;
   }
 
   return (
     <div style={{ width: '100%', height }}>
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
-          <CartesianGrid stroke="#eee" strokeDasharray="3 3" />
+        <AreaChart data={data} margin={{ top: 8, right: 8, left: -8, bottom: 8 }}>
+          <defs>
+            <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--chart-income)" stopOpacity={0.28} /><stop offset="100%" stopColor="var(--chart-income)" stopOpacity={0.01} /></linearGradient>
+            <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--chart-expense)" stopOpacity={0.22} /><stop offset="100%" stopColor="var(--chart-expense)" stopOpacity={0.01} /></linearGradient>
+          </defs>
+          <CartesianGrid vertical={false} strokeDasharray="4 6" />
           <XAxis dataKey="date" tickFormatter={formatDateLabel} fontSize={12} />
-          <YAxis fontSize={12} />
-          <Tooltip labelFormatter={formatDateLabel} />
-          <Legend />
-          <Line type="monotone" dataKey="income" name="Income" stroke="#16a34a" strokeWidth={2} dot={false} />
-          <Line type="monotone" dataKey="expense" name="Expenses" stroke="#ef4444" strokeWidth={2} dot={false} />
-        </LineChart>
+          <YAxis tickFormatter={formatCompactCurrency} width={58} />
+          <Tooltip content={<FinanceTooltip labelFormatter={formatDateLabel} />} cursor={{ stroke: '#94a3b8', strokeDasharray: '4 4' }} />
+          <Legend iconType="circle" iconSize={8} />
+          <Area type="monotone" dataKey="income" name="Income" stroke="var(--chart-income)" strokeWidth={2.5} fill="url(#incomeGradient)" activeDot={{ r: 5, strokeWidth: 2, fill: 'var(--surface)' }} />
+          <Area type="monotone" dataKey="expense" name="Expenses" stroke="var(--chart-expense)" strokeWidth={2.5} fill="url(#expenseGradient)" activeDot={{ r: 5, strokeWidth: 2, fill: 'var(--surface)' }} />
+        </AreaChart>
       </ResponsiveContainer>
     </div>
   );
 }
-

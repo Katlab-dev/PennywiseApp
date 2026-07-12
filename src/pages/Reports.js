@@ -62,13 +62,17 @@ export default function Reports() {
         )}
       </div>
       <div className="reports-grid">
-        <div className="card" style={{ height: 320 }}>
-          <h2 className="page-title" style={{ fontSize: 18, marginBottom: 8 }}>Income vs Expenses</h2>
-          <IncomeExpenseLineChart height={260} />
+        <div className="card chart-card">
+          <div className="chart-card__header">
+            <div><h2>Income vs expenses</h2><p>Daily movement across your account</p></div>
+          </div>
+          <IncomeExpenseLineChart height={270} />
         </div>
-        <div className="card" style={{ height: 320 }}>
-          <h2 className="page-title" style={{ fontSize: 18, marginBottom: 8 }}>Expenses by Category</h2>
-          <ExpenseByCategoryBarChart height={260} />
+        <div className="card chart-card">
+          <div className="chart-card__header">
+            <div><h2>Expenses by category</h2><p>Categories ranked by total spend</p></div>
+          </div>
+          <ExpenseByCategoryBarChart height={270} />
         </div>
       </div>
     </section>

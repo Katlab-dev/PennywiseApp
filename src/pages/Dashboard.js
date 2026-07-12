@@ -9,6 +9,7 @@ import ProgressBar from '../components/ProgressBar';
 import { monthKey, categorySumsThisMonth, totalExpensesThisMonth, sumByMonth } from '../utils/calculateBudgets';
 import { Link } from 'react-router-dom';
 import { useFinance } from '../context/FinanceContext';
+import FinancialPulse from '../components/FinancialPulse';
 
 export default function Dashboard() {
   const { totals, incomes, expenses, budget } = useFinance();
@@ -37,6 +38,8 @@ export default function Dashboard() {
         <SummaryCard title="Total Expenses" value={totalExpenses} />
         <SummaryCard title="Balance" value={balance} />
       </div>
+
+      <FinancialPulse totals={totals} incomes={incomes} expenses={expenses} budget={budget} />
 
       <div className="quick-actions">
         <Link className="btn" to="/add-expense">Add Expense</Link>
@@ -75,16 +78,23 @@ export default function Dashboard() {
             <div className="card" style={{ color: '#6b7280' }}>No transactions yet.</div>
           )}
           <div className="card" style={{ marginTop: 12 }}>
-            <h3 style={{ margin: '0 0 6px' }}>Spending by Category</h3>
+            <div className="chart-card__header">
+              <div><h3>Spending by category</h3><p>How your expenses are distributed</p></div>
+            </div>
             <CategoryChart height={220} />
           </div>
         </div>
         <div className="right-col">
-          <div className="card" style={{ height: 260 }}>
+          <div className="card chart-card">
+            <div className="chart-card__header">
+              <div><h3>Cash flow</h3><p>Income and expenses by date</p></div>
+            </div>
             <IncomeExpenseLineChart height={220} />
           </div>
           <div className="card" style={{ marginTop: 12 }}>
-            <h3 style={{ margin: '0 0 6px' }}>Monthly Trends</h3>
+            <div className="chart-card__header">
+              <div><h3>Monthly trends</h3><p>Compare money in and money out</p></div>
+            </div>
             <TrendChart height={220} />
           </div>
         </div>

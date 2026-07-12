@@ -12,15 +12,19 @@ export default function AddIncome() {
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     setError('');
     if (!source || !amount || !date) {
       setError('Please fill in Source, Amount, and Date.');
       return;
     }
-    addIncome({ title: source, amount: Number(amount), date, notes, category: '-' });
-    navigate('/');
+    try {
+      await addIncome({ title: source, amount: Number(amount), date, notes, category: '-' });
+      navigate('/');
+    } catch (err) {
+      setError(err?.message || 'Failed to save income.');
+    }
   }
 
   return (

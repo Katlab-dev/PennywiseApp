@@ -13,15 +13,19 @@ export default function AddExpense() {
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     setError('');
     if (!title || !amount || !date) {
       setError('Please fill in Title, Amount, and Date.');
       return;
     }
-    addExpense({ title, amount: Number(amount), category, date, notes });
-    navigate('/');
+    try {
+      await addExpense({ title, amount: Number(amount), category, date, notes });
+      navigate('/');
+    } catch (err) {
+      setError(err?.message || 'Failed to save expense.');
+    }
   }
 
   return (

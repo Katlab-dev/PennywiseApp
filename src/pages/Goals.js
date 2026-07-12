@@ -3,20 +3,26 @@ import { useFinance } from '../context/FinanceContext';
 import ProgressBar from '../components/ProgressBar';
 
 export default function Goals() {
-  const { goals, addGoal, totals, updateGoal, deleteGoal } = useFinance();
+  const { goals, addGoal, updateGoal, deleteGoal } = useFinance();
   const list = Array.isArray(goals) ? goals : [];
   const [title, setTitle] = useState('');
   const [target, setTarget] = useState('');
   const [deadline, setDeadline] = useState('');
   const [progressEdits, setProgressEdits] = useState({});
+  const [error, setError] = useState('');
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     if (!title || !target) return;
-    addGoal({ title, target: Number(target) || 0, deadline });
-    setTitle('');
-    setTarget('');
-    setDeadline('');
+    setError('');
+    try {
+      await addGoal({ title, target: Number(target) || 0, current: 0, deadline });
+      setTitle('');
+      setTarget('');
+      setDeadline('');
+    } catch (err) {
+      setError(err?.message || 'Failed to add goal.');
+    }
   }
 
   return (
@@ -40,6 +46,7 @@ export default function Goals() {
           <label htmlFor="g_deadline">Deadline (optional)</label>
           <input id="g_deadline" type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
         </div>
+        {error && <div className="error" role="alert">{error}</div>}
         <button className="btn" type="submit">Add Goal</button>
       </form>
 
@@ -50,7 +57,7 @@ export default function Goals() {
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
             {list.map((g) => {
-              const progress = g.target > 0 ? Math.min(totals.balance, g.target) : 0;
+              const progress = g.target > 0 ? Math.min(Number(g.current) || 0, g.target) : 0;
               return (
                 <div key={g.id} className="goal-item">
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
@@ -72,8 +79,23 @@ export default function Goals() {
                       onChange={(e) => setProgressEdits({ ...progressEdits, [g.id]: e.target.value })}
                       style={{ maxWidth: 140, padding: '8px 10px', border: '1px solid #e5e7eb', borderRadius: 8 }}
                     />
-                    <button className="btn" onClick={() => updateGoal(g.id, { current: Number(progressEdits[g.id] ?? g.current ?? 0) })}>Save</button>
-                    <button className="btn btn--ghost" onClick={() => { if (window.confirm('Delete goal?')) deleteGoal(g.id); }}>Delete</button>
+                    <button type="button" className="btn" onClick={async () => {
+                      try {
+                        setError('');
+                        await updateGoal(g.id, { current: Number(progressEdits[g.id] ?? g.current ?? 0) });
+                      } catch (err) {
+                        setError(err?.message || 'Failed to update goal.');
+                      }
+                    }}>Save</button>
+                    <button type="button" className="btn btn--ghost" onClick={async () => {
+                      if (!window.confirm('Delete goal?')) return;
+                      try {
+                        setError('');
+                        await deleteGoal(g.id);
+                      } catch (err) {
+                        setError(err?.message || 'Failed to delete goal.');
+                      }
+                    }}>Delete</button>
                   </div>
                 </div>
               );

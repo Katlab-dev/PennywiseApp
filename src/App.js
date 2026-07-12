@@ -9,7 +9,7 @@ import Budget from './pages/Budget';
 import Goals from './pages/Goals';
 import Reports from './pages/Reports';
 import Home from './pages/Home';
-import Login from './pages/Login';
+import Login from './Login';
 import Register from './pages/Register';
 import Assistant from './pages/Assistant';
 import AuthLanding from './pages/AuthLanding';
@@ -20,6 +20,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { useAuth } from './context/AuthContext';
 import AssistantFAB from './components/AssistantFAB';
+import AmbientBackground from './components/AmbientBackground';
 
 function RoutedApp() {
   const { currentUser, loading } = useAuth();
@@ -42,8 +43,10 @@ function RoutedApp() {
 
   return (
     <div className="app-shell">
+      <AmbientBackground />
+      <a className="skip-link" href="#main-content">Skip to content</a>
       <Navbar />
-      <main className="container page-container">
+      <main id="main-content" className="container page-container">
         <Routes>
           <Route path="/auth" element={<AuthLanding />} />
           <Route path="/" element={<Dashboard />} />
