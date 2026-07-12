@@ -17,6 +17,12 @@
 .env.development.local
 .env.test.local
 .env.production.local
+.env
+.firebaserc
+.firebase/
+firestore-debug.log
+ui-debug.log
+.pennywise-git/
 
 npm-debug.log*
 yarn-debug.log*

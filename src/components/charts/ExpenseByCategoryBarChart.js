@@ -9,6 +9,8 @@ import {
   YAxis,
   Tooltip,
 } from 'recharts';
+import { FinanceTooltip, formatCompactCurrency } from './chartFormatters';
+import './Charts.css';
 
 export default function ExpenseByCategoryBarChart({ height = 220 }) {
   const { expenses } = useFinance();
@@ -25,21 +27,21 @@ export default function ExpenseByCategoryBarChart({ height = 220 }) {
   }, [expenses]);
 
   if (data.length === 0) {
-    return <div style={{ color: '#6b7280' }}>Add expenses to see category breakdown.</div>;
+    return <div className="chart-empty">Add expenses to see where your money goes.</div>;
   }
 
   return (
     <div style={{ width: '100%', height }}>
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
-          <CartesianGrid stroke="#eee" strokeDasharray="3 3" />
-          <XAxis dataKey="category" fontSize={12} />
-          <YAxis fontSize={12} />
-          <Tooltip />
-          <Bar dataKey="amount" name="Amount" fill="#3b82f6" radius={[6,6,0,0]} />
+        <BarChart data={data} layout="vertical" margin={{ top: 4, right: 12, left: 4, bottom: 4 }}>
+          <defs><linearGradient id="categoryBarGradient" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="var(--accent-primary)" /><stop offset="100%" stopColor="var(--chart-balance)" /></linearGradient></defs>
+          <CartesianGrid horizontal={false} strokeDasharray="4 6" />
+          <XAxis type="number" tickFormatter={formatCompactCurrency} />
+          <YAxis type="category" dataKey="category" width={72} />
+          <Tooltip content={<FinanceTooltip />} cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }} />
+          <Bar dataKey="amount" name="Spent" fill="url(#categoryBarGradient)" radius={[0,8,8,0]} barSize={18} />
         </BarChart>
       </ResponsiveContainer>
     </div>
   );
 }
-

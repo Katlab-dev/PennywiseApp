@@ -114,3 +114,10 @@
 /* Mobile tweaks */
 @media (max-width: 480px) { .msg-bubble { max-width: 85%; } }
 
+.assistant { border-color: var(--border); background: var(--surface); box-shadow: var(--shadow-md); }
+.assistant__header, .assistant__inputbar { border-color: var(--border); background: var(--surface); color: var(--text); }
+.assistant__chat { background: radial-gradient(700px 450px at 0% 0%, var(--aurora-one), transparent 55%), var(--surface-muted); }
+.msg-bubble--assistant { background: var(--surface); color: var(--text); }
+.msg-bubble--user, .assistant__send { background: var(--accent-primary); color: #fff; }
+.assistant__input { border-color: var(--border); background: var(--surface-muted); color: var(--text); }
+.assistant__input:focus { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-primary) 18%, transparent); }

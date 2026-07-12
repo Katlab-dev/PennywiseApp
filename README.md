@@ -1,4 +1,40 @@
-# Getting Started with Create React App
+# PennyWise
+
+PennyWise is a React and Firebase personal-finance application. Firebase Authentication manages accounts and Cloud Firestore stores each user's expenses, income, budget, and savings goals.
+
+## Backend setup
+
+1. Create or select a Firebase project.
+2. Enable Email/Password under Firebase Authentication → Sign-in method.
+3. Create a Cloud Firestore database.
+4. Copy `.env.example` to `.env.local` and add the Firebase web-app configuration.
+5. Copy `.firebaserc.example` to `.firebaserc` and replace the example project ID.
+6. Install dependencies with `npm install`.
+7. Deploy the backend configuration with `npm run firebase:deploy`.
+
+The Firebase web configuration identifies the project; authorization is enforced by `firestore.rules`. The rules only allow an authenticated user to access documents below their own `users/{uid}` path and validate every supported document shape.
+
+## Data model
+
+```text
+users/{uid}/expenses/{expenseId}
+users/{uid}/income/{incomeId}
+users/{uid}/goals/{goalId}
+users/{uid}/budgets/current
+```
+
+## Local development
+
+- `npm start` starts the React application.
+- `npm test` runs React unit tests.
+- `npm run test:rules` starts the Firestore emulator and tests the security rules.
+- `npm run emulators` starts the local Firebase emulator suite.
+- `npm run build` creates a production frontend build.
+- `npm run firebase:deploy` deploys Firestore rules and indexes.
+
+Never commit `.env.local` or `.firebaserc`. Both are ignored by Git.
+
+## Create React App reference
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 

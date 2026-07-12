@@ -1,0 +1,103 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedInAs(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    function validText(value, maxLength) {
+      return value is string && value.size() > 0 && value.size() <= maxLength;
+    }
+
+    function validOptionalText(value, maxLength) {
+      return value is string && value.size() <= maxLength;
+    }
+
+    function validAmount(value) {
+      return value is number && value >= 0 && value <= 1000000000;
+    }
+
+    function validTransaction(data, expectedType) {
+      return data.keys().hasOnly([
+          'title', 'amount', 'category', 'date', 'notes', 'type', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasAll(['title', 'amount', 'category', 'date', 'type', 'createdAt'])
+        && validText(data.title, 120)
+        && validAmount(data.amount)
+        && validText(data.category, 60)
+        && validText(data.date, 10)
+        && data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && data.type == expectedType
+        && data.createdAt is timestamp
+        && (!data.keys().hasAny(['notes']) || validOptionalText(data.notes, 500))
+        && (!data.keys().hasAny(['updatedAt']) || data.updatedAt is timestamp);
+    }
+
+    function validGoal(data) {
+      return data.keys().hasOnly([
+          'title', 'target', 'current', 'deadline', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasAll(['title', 'target', 'current', 'deadline', 'createdAt'])
+        && validText(data.title, 120)
+        && validAmount(data.target)
+        && data.target > 0
+        && validAmount(data.current)
+        && data.current <= data.target
+        && data.deadline is string
+        && (data.deadline == '' || data.deadline.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'))
+        && data.createdAt is timestamp
+        && (!data.keys().hasAny(['updatedAt']) || data.updatedAt is timestamp);
+    }
+
+    function validBudget(data) {
+      return data.keys().hasOnly(['total', 'categories', 'updatedAt'])
+        && data.keys().hasAll(['total', 'categories', 'updatedAt'])
+        && validAmount(data.total)
+        && data.categories is map
+        && data.categories.keys().hasOnly(['Food', 'Transport', 'Rent', 'Other'])
+        && validAmount(data.categories.get('Food', 0))
+        && validAmount(data.categories.get('Transport', 0))
+        && validAmount(data.categories.get('Rent', 0))
+        && validAmount(data.categories.get('Other', 0))
+        && data.updatedAt is timestamp;
+    }
+
+    match /users/{uid} {
+      allow read, write: if false;
+
+      match /expenses/{expenseId} {
+        allow read, delete: if signedInAs(uid);
+        allow create, update: if signedInAs(uid)
+          && validTransaction(request.resource.data, 'expense');
+      }
+
+      match /income/{incomeId} {
+        allow read, delete: if signedInAs(uid);
+        allow create, update: if signedInAs(uid)
+          && validTransaction(request.resource.data, 'income');
+      }
+
+      match /goals/{goalId} {
+        allow read, delete: if signedInAs(uid);
+        allow create, update: if signedInAs(uid) && validGoal(request.resource.data);
+      }
+
+      match /budgets/{budgetId} {
+        allow read: if signedInAs(uid) && budgetId == 'current';
+        allow create, update: if signedInAs(uid)
+          && budgetId == 'current'
+          && validBudget(request.resource.data);
+        allow delete: if false;
+      }
+
+      match /{document=**} {
+        allow read, write: if false;
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

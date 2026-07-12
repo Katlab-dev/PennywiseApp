@@ -1,22 +1,34 @@
 // src/firebaseConfig.js
-import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
-// (We'll add firestore/auth imports later when needed)
+import { initializeApp } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBoBCgJpwDCPuIzLiEL6QjSU56nHkfy1vQ",
-  authDomain: "pennywise-c8f6e.firebaseapp.com",
-  projectId: "pennywise-c8f6e",
-  storageBucket: "pennywise-c8f6e.firebasestorage.app",
-  messagingSenderId: "863062402705",
-  appId: "1:863062402705:web:78a8a8c63acf67e6a90130",
-  measurementId: "G-RTZ1KRMP30"
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.REACT_APP_FIREBASE_APP_ID,
+  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID,
 };
 
-// Initialize Firebase app
+const requiredKeys = ['apiKey', 'authDomain', 'projectId', 'appId'];
+const missingKeys = requiredKeys.filter((key) => !firebaseConfig[key]);
+
+if (missingKeys.length && process.env.NODE_ENV !== 'test') {
+  throw new Error(
+    `Missing Firebase configuration: ${missingKeys.join(', ')}. Copy .env.example to .env.local and fill in your Firebase values.`
+  );
+}
+
+// Firebase still needs syntactically valid options while unit tests mock/avoid the backend.
+if (process.env.NODE_ENV === 'test') {
+  firebaseConfig.apiKey ||= 'test-api-key';
+  firebaseConfig.authDomain ||= 'test.firebaseapp.com';
+  firebaseConfig.projectId ||= 'test-project';
+  firebaseConfig.appId ||= '1:123:web:test';
+}
+
 const app = initializeApp(firebaseConfig);
-
 export const db = getFirestore(app);
-
-// Export app so it can be used in other files (auth, firestore, etc)
 export default app;

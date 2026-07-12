@@ -24,10 +24,10 @@ export default function Navbar() {
   return (
     <header className="navbar">
       <div className="container nav-inner">
-        <div className="brand">
+        <NavLink to="/" className="brand" aria-label="PennyWise dashboard" onClick={() => setOpen(false)}>
           <span className="logo" aria-hidden>💸</span>
           <span className="brand-text">PennyWise</span>
-        </div>
+        </NavLink>
 
         <button
           className="menu-toggle"
@@ -73,17 +73,20 @@ export default function Navbar() {
               </NavLink>
             </>
           ) : (
-            <button
-              type="button"
-              className="nav-link"
-              onClick={async () => {
-                await logout();
-                setOpen(false);
-                navigate('/');
-              }}
-            >
-              Logout
-            </button>
+            <>
+              <span className="user-chip" title={currentUser.email || 'Signed in'}>{currentUser.email?.split('@')[0] || 'Account'}</span>
+              <button
+                type="button"
+                className="nav-link nav-logout"
+                onClick={async () => {
+                  await logout();
+                  setOpen(false);
+                  navigate('/');
+                }}
+              >
+                Logout
+              </button>
+            </>
           )}
           <button type="button" className="nav-link" aria-pressed={theme === 'dark'} onClick={() => { toggleTheme(); setOpen(false); }}>
             {theme === 'dark' ? '☀️ Light' : '🌙 Dark'}

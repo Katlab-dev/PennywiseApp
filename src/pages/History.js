@@ -1,9 +1,12 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { formatCurrency } from '../utils/formatCurrency';
 import { useFinance } from '../context/FinanceContext';
+import TransactionEditor from '../components/TransactionEditor';
 
 export default function History() {
-  const { loading, incomes, expenses, deleteTransaction } = useFinance();
+  const { loading, incomes, expenses, deleteTransaction, updateExpense, updateIncome } = useFinance();
+  const [editing, setEditing] = useState(null);
+  const [error, setError] = useState('');
   const rows = useMemo(() => {
     const all = [
       ...incomes.map((i) => ({ ...i, type: 'Income' })),
@@ -23,6 +26,7 @@ export default function History() {
         <div className="card" style={{ color: '#6b7280' }}>Loading your data…</div>
       ) : (
         <div className="table-wrap card">
+          {error && <div className="error" role="alert" style={{ marginBottom: 10 }}>{error}</div>}
           <table className="table">
             <thead>
               <tr>
@@ -48,11 +52,19 @@ export default function History() {
                     <td style={{ textAlign: 'right' }}>{formatCurrency(r.amount)}</td>
                     <td>{r.date}</td>
                     <td>
+                      <button className="btn btn--ghost" style={{ marginRight: 6 }} onClick={() => { setError(''); setEditing(r); }}>
+                        Edit
+                      </button>
                       <button
                         className="btn btn--ghost"
-                        onClick={() => {
+                        onClick={async () => {
                           if (window.confirm('Delete this item?')) {
-                            deleteTransaction(r.id, r.type);
+                            try {
+                              setError('');
+                              await deleteTransaction(r.id, r.type);
+                            } catch (err) {
+                              setError(err?.message || 'Failed to delete transaction.');
+                            }
                           }
                         }}
                       >
@@ -66,6 +78,16 @@ export default function History() {
           </table>
         </div>
       )}
+
+      <TransactionEditor
+        transaction={editing}
+        onCancel={() => setEditing(null)}
+        onSave={async (patch) => {
+          if (editing.type === 'Income') await updateIncome(editing.id, patch);
+          else await updateExpense(editing.id, patch);
+          setEditing(null);
+        }}
+      />
     </section>
   );
 }

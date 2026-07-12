@@ -16,6 +16,22 @@
   box-shadow: 0 10px 30px rgba(16, 24, 40, 0.06);
 }
 
+.auth { min-height: calc(100vh - 130px); place-items: center; padding: 20px 0 50px; }
+.auth-card { border-radius: var(--radius-lg); border-color: var(--border); box-shadow: var(--shadow-md); }
+.auth-title { font-size: 28px; letter-spacing: -0.035em; }
+.auth-card .btn--block { min-height: 48px; }
+
+body.theme-dark .auth-card { background: var(--surface); border-color: var(--border); }
+body.theme-dark .auth-title,
+body.theme-dark .form-field label,
+body.theme-dark .checkbox { color: var(--text); }
+body.theme-dark .form-field input { background: var(--surface-muted); border-color: var(--border); color: var(--text); }
+
+.auth--currency { position:relative; z-index:1; min-height:calc(100vh - 125px); }
+.login-card { position:relative; z-index:1; border-color:color-mix(in srgb,var(--accent-primary) 28%,var(--border)); background:color-mix(in srgb,var(--surface) 84%,transparent); box-shadow:0 32px 80px color-mix(in srgb,var(--brand) 12%,transparent),inset 0 1px 0 color-mix(in srgb,white 40%,transparent); backdrop-filter:blur(22px) saturate(130%); }
+.login-card__brand { display:grid; place-items:center; width:48px; height:48px; margin:0 auto 18px; border-radius:15px; background:linear-gradient(145deg,var(--accent-primary),var(--finance-income)); color:#fff; box-shadow:0 14px 30px color-mix(in srgb,var(--accent-primary) 24%,transparent); font:750 22px var(--font-display); }
+.login-card .auth-title,.login-card .auth-subtitle { text-align:center; }.login-card .helper { text-align:center; }
+
 .auth-title {
   margin: 0 0 6px;
   font-size: 24px;
@@ -87,4 +103,3 @@
   border-radius: 8px;
   font-size: 13px;
 }
-

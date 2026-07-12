@@ -16,6 +16,7 @@ export function ThemeProvider({ children }) {
     const cls = 'theme-dark';
     if (theme === 'dark') document.body.classList.add(cls);
     else document.body.classList.remove(cls);
+    document.documentElement.dataset.theme = theme;
   }, [theme]);
 
   const toggleTheme = () => setTheme((t) => (t === 'light' ? 'dark' : 'light'));
@@ -28,4 +29,3 @@ export function useTheme() {
   if (!ctx) throw new Error('useTheme must be used within ThemeProvider');
   return ctx;
 }
-

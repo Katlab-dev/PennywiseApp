@@ -1,0 +1,63 @@
+.financial-pulse {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) auto minmax(170px, .55fr);
+  align-items: center;
+  gap: clamp(24px, 4vw, 52px);
+  overflow: hidden;
+  margin: 18px 0;
+  padding: clamp(25px, 4vw, 38px);
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 28%, var(--border));
+  border-radius: 26px;
+  background:
+    linear-gradient(120deg, color-mix(in srgb, var(--surface) 91%, transparent), color-mix(in srgb, var(--surface) 78%, transparent)),
+    linear-gradient(135deg, var(--accent-primary), var(--finance-income) 52%, var(--accent-secondary));
+  box-shadow: 0 25px 65px color-mix(in srgb, var(--page-bg) 56%, transparent), inset 0 1px 0 color-mix(in srgb, white 12%, transparent);
+}
+
+.financial-pulse::before {
+  content: '';
+  position: absolute;
+  z-index: -2;
+  inset: 0;
+  opacity: .25;
+  background: linear-gradient(105deg, transparent 20%, var(--accent-primary) 46%, var(--finance-income) 67%, var(--accent-secondary) 92%);
+  background-size: 220% 100%;
+  animation: pulse-spectrum 9s ease-in-out infinite alternate;
+}
+
+.financial-pulse::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 1px;
+  border-radius: 25px;
+  background: linear-gradient(120deg, color-mix(in srgb, var(--surface) 94%, transparent), color-mix(in srgb, var(--surface) 82%, transparent));
+}
+
+.financial-pulse__orb { position: absolute; z-index: 0; border-radius: 50%; filter: blur(3px); pointer-events: none; }
+.financial-pulse__orb--one { width: 230px; height: 230px; right: 18%; top: -155px; background: radial-gradient(circle, color-mix(in srgb, var(--finance-income) 29%, transparent), transparent 68%); animation: pulse-orb 7s ease-in-out infinite alternate; }
+.financial-pulse__orb--two { width: 180px; height: 180px; left: 22%; bottom: -135px; background: radial-gradient(circle, color-mix(in srgb, var(--accent-primary) 25%, transparent), transparent 68%); animation: pulse-orb 9s ease-in-out -3s infinite alternate-reverse; }
+.financial-pulse__copy, .financial-pulse__meter, .financial-pulse__metrics { position: relative; z-index: 1; }
+.financial-pulse__label { display: inline-flex; align-items: center; gap: 7px; margin-bottom: 11px; color: var(--accent-primary); font-size: 11px; font-weight: 750; letter-spacing: .09em; text-transform: uppercase; }
+.financial-pulse__copy h2 { margin: 0 0 9px; color: var(--text); font-size: clamp(24px, 3.2vw, 38px); letter-spacing: -.045em; }
+.financial-pulse__copy > p { max-width: 600px; margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
+.financial-pulse__flow { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 19px; }
+.financial-pulse__flow span { display: inline-flex; align-items: center; gap: 5px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 999px; background: color-mix(in srgb, var(--surface-muted) 75%, transparent); color: var(--muted); font-size: 10px; }
+.financial-pulse__flow span:first-child svg { color: var(--finance-income); }.financial-pulse__flow span:last-child svg { color: var(--finance-expense); }
+.financial-pulse__flow strong { margin-left: 3px; color: var(--text); }
+.financial-pulse__meter { --pulse-score: 0deg; display: grid; place-items: center; width: 146px; height: 146px; border-radius: 50%; background: conic-gradient(from -90deg, var(--accent-primary), var(--finance-income), var(--accent-secondary) var(--pulse-score), color-mix(in srgb, var(--border) 65%, transparent) var(--pulse-score)); box-shadow: 0 0 38px color-mix(in srgb, var(--accent-primary) 15%, transparent); animation: pulse-meter-in 900ms cubic-bezier(.22,1,.36,1) both; }
+.financial-pulse__meter::before { content: ''; position: absolute; inset: 8px; border-radius: 50%; border: 1px solid color-mix(in srgb, white 12%, transparent); }
+.financial-pulse__meter-inner { display: grid; place-items: center; width: 112px; height: 112px; border: 1px solid var(--border); border-radius: 50%; background: var(--surface); box-shadow: inset 0 8px 22px color-mix(in srgb, var(--page-bg) 55%, transparent); }
+.financial-pulse__meter-inner strong { color: var(--text); font-family: var(--font-display); font-size: 39px; line-height: 1; letter-spacing: -.06em; }
+.financial-pulse__meter-inner span { margin-top: 3px; color: var(--muted); font-size: 9px; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; }
+.financial-pulse__metrics { display: grid; gap: 10px; }
+.financial-pulse__metrics > div { display: grid; gap: 5px; padding: 13px 14px; border: 1px solid var(--border); border-radius: 15px; background: color-mix(in srgb, var(--surface-muted) 76%, transparent); }
+.financial-pulse__metrics span { display: flex; align-items: center; gap: 5px; color: var(--muted); font-size: 10px; }.financial-pulse__metrics strong { color: var(--text); font-family: var(--font-display); font-size: 18px; }
+@keyframes pulse-spectrum { from { background-position: 0% 50%; } to { background-position: 100% 50%; } }
+@keyframes pulse-orb { from { transform: translate3d(-8%,0,0) scale(.9); } to { transform: translate3d(15%,18%,0) scale(1.15); } }
+@keyframes pulse-meter-in { from { opacity: 0; transform: rotate(-35deg) scale(.78); } to { opacity: 1; transform: rotate(0) scale(1); } }
+@media (max-width: 900px) { .financial-pulse { grid-template-columns: 1fr auto; }.financial-pulse__metrics { grid-column: 1 / -1; grid-template-columns: 1fr 1fr; } }
+@media (max-width: 620px) { .financial-pulse { grid-template-columns: 1fr; padding: 24px 19px; border-radius: 21px; }.financial-pulse__meter { grid-row: 1; width: 128px; height: 128px; justify-self: center; }.financial-pulse__meter-inner { width: 98px; height: 98px; }.financial-pulse__meter-inner strong { font-size: 34px; }.financial-pulse__copy { text-align: center; }.financial-pulse__flow { justify-content: center; }.financial-pulse__metrics { grid-column: 1; grid-template-columns: 1fr 1fr; } }
+@media (prefers-reduced-motion: reduce) { .financial-pulse::before, .financial-pulse__orb, .financial-pulse__meter { animation: none !important; } }
