@@ -1,13 +1,17 @@
 import React, { useEffect, useState } from 'react';
+import {
+  CORE_EXPENSE_CATEGORIES,
+  getExpenseCategoryFormValues,
+  resolveExpenseCategory,
+} from '../utils/expenseCategories';
 import './TransactionEditor.css';
-
-const EXPENSE_CATEGORIES = ['Food', 'Transport', 'Rent', 'Other'];
 
 export default function TransactionEditor({ transaction, onSave, onCancel }) {
   const isIncome = transaction?.type === 'Income';
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('Other');
+  const [customCategory, setCustomCategory] = useState('');
   const [date, setDate] = useState('');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
@@ -17,7 +21,9 @@ export default function TransactionEditor({ transaction, onSave, onCancel }) {
     if (!transaction) return;
     setTitle(transaction.title || '');
     setAmount(String(transaction.amount ?? ''));
-    setCategory(transaction.category || 'Other');
+    const categoryValues = getExpenseCategoryFormValues(transaction.category);
+    setCategory(categoryValues.category);
+    setCustomCategory(categoryValues.customCategory);
     setDate(transaction.date || '');
     setNotes(transaction.notes || '');
     setError('');
@@ -43,7 +49,9 @@ export default function TransactionEditor({ transaction, onSave, onCancel }) {
       await onSave({
         title: title.trim(),
         amount: Number(amount),
-        category: isIncome ? '-' : category,
+        category: isIncome
+          ? '-'
+          : resolveExpenseCategory(category, customCategory, [transaction.category]),
         date,
         notes: notes.trim(),
       });
@@ -85,12 +93,33 @@ export default function TransactionEditor({ transaction, onSave, onCancel }) {
           </div>
 
           {!isIncome && (
-            <div className="form-field">
-              <label htmlFor="edit-category">Category</label>
-              <select id="edit-category" value={category} onChange={(event) => setCategory(event.target.value)}>
-                {Array.from(new Set([...EXPENSE_CATEGORIES, category])).map((item) => <option key={item}>{item}</option>)}
-              </select>
-            </div>
+            <>
+              <div className="form-field">
+                <label htmlFor="edit-category">Category</label>
+                <select id="edit-category" value={category} onChange={(event) => setCategory(event.target.value)}>
+                  {CORE_EXPENSE_CATEGORIES.map((item) => (
+                    <option key={item} value={item}>{item === 'Other' ? 'Other / custom' : item}</option>
+                  ))}
+                </select>
+              </div>
+
+              {category === 'Other' && (
+                <div className="form-field">
+                  <label htmlFor="edit-custom-category">Custom category (optional)</label>
+                  <input
+                    id="edit-custom-category"
+                    value={customCategory}
+                    onChange={(event) => setCustomCategory(event.target.value)}
+                    placeholder="e.g. Takeaways or School supplies"
+                    maxLength={60}
+                    aria-describedby="edit-custom-category-hint"
+                  />
+                  <small className="form-hint" id="edit-custom-category-hint">
+                    This name is saved as the category for this expense only. Leave it blank for Other.
+                  </small>
+                </div>
+              )}
+            </>
           )}
 
           <div className="form-field">

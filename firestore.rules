@@ -50,16 +50,49 @@ service cloud.firestore {
         && (!data.keys().hasAny(['updatedAt']) || data.updatedAt is timestamp);
     }
 
+    function validDynamicBudgetCategoryAt(categories, index) {
+      return categories.size() <= index
+        || (
+          validText(categories.keys()[index], 60)
+          && validAmount(categories.values()[index])
+          && categories.values()[index] > 0
+        );
+    }
+
+    function validDynamicBudgetCategories(categories) {
+      return categories is map
+        && categories.size() <= 12
+        && validDynamicBudgetCategoryAt(categories, 0)
+        && validDynamicBudgetCategoryAt(categories, 1)
+        && validDynamicBudgetCategoryAt(categories, 2)
+        && validDynamicBudgetCategoryAt(categories, 3)
+        && validDynamicBudgetCategoryAt(categories, 4)
+        && validDynamicBudgetCategoryAt(categories, 5)
+        && validDynamicBudgetCategoryAt(categories, 6)
+        && validDynamicBudgetCategoryAt(categories, 7)
+        && validDynamicBudgetCategoryAt(categories, 8)
+        && validDynamicBudgetCategoryAt(categories, 9)
+        && validDynamicBudgetCategoryAt(categories, 10)
+        && validDynamicBudgetCategoryAt(categories, 11);
+    }
+
+    function validLegacyBudgetCategories(categories) {
+      return categories is map
+        && categories.keys().hasOnly(['Food', 'Transport', 'Rent', 'Other'])
+        && validAmount(categories.get('Food', 0))
+        && validAmount(categories.get('Transport', 0))
+        && validAmount(categories.get('Rent', 0))
+        && validAmount(categories.get('Other', 0));
+    }
+
     function validBudget(data) {
       return data.keys().hasOnly(['total', 'categories', 'updatedAt'])
         && data.keys().hasAll(['total', 'categories', 'updatedAt'])
         && validAmount(data.total)
-        && data.categories is map
-        && data.categories.keys().hasOnly(['Food', 'Transport', 'Rent', 'Other'])
-        && validAmount(data.categories.get('Food', 0))
-        && validAmount(data.categories.get('Transport', 0))
-        && validAmount(data.categories.get('Rent', 0))
-        && validAmount(data.categories.get('Other', 0))
+        && (
+          validDynamicBudgetCategories(data.categories)
+          || validLegacyBudgetCategories(data.categories)
+        )
         && data.updatedAt is timestamp;
     }
 

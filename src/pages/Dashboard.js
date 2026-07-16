@@ -6,7 +6,13 @@ import IncomeExpenseLineChart from '../components/charts/IncomeExpenseLineChart'
 import CategoryChart from '../components/CategoryChart';
 import TrendChart from '../components/TrendChart';
 import ProgressBar from '../components/ProgressBar';
-import { monthKey, categorySumsThisMonth, totalExpensesThisMonth, sumByMonth } from '../utils/calculateBudgets';
+import {
+  monthKey,
+  budgetCategorySumsThisMonth,
+  categorySumsThisMonth,
+  totalExpensesThisMonth,
+  sumByMonth,
+} from '../utils/calculateBudgets';
 import { Link } from 'react-router-dom';
 import { useFinance } from '../context/FinanceContext';
 import FinancialPulse from '../components/FinancialPulse';
@@ -14,6 +20,13 @@ import FinancialPulse from '../components/FinancialPulse';
 export default function Dashboard() {
   const { totals, incomes, expenses, budget } = useFinance();
   const { totalIncome, totalExpenses, balance } = totals;
+  const usedBudgetCategories = useMemo(
+    () => budgetCategorySumsThisMonth(expenses, budget?.categories || {}),
+    [expenses, budget]
+  );
+  const savedBudgetCategories = Object.entries(budget?.categories || {})
+    .filter(([, limit]) => Number(limit) > 0);
+  const hasTotalBudget = Number(budget?.total) > 0;
 
   const recent = useMemo(() => {
     const all = [
@@ -50,18 +63,20 @@ export default function Dashboard() {
       {/* Budget progress */}
       <div className="card" style={{ marginBottom: 12 }}>
         <h2 className="page-title" style={{ fontSize: 18, marginBottom: 8 }}>Budget Overview</h2>
-        {budget?.total > 0 ? (
+        {hasTotalBudget || savedBudgetCategories.length > 0 ? (
           <>
-            <ProgressBar label={`Total budget used (${budget.total})`} value={totalExpensesThisMonth(expenses)} max={budget.total} />
+            {hasTotalBudget && (
+              <ProgressBar label={`Total budget used (${budget.total})`} value={totalExpensesThisMonth(expenses)} max={budget.total} />
+            )}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 8 }}>
-              {Object.entries(budget.categories || {}).filter(([, v]) => Number(v) > 0).map(([cat, max]) => {
-                const used = categorySumsThisMonth(expenses).get(cat) || 0;
+              {savedBudgetCategories.map(([cat, max]) => {
+                const used = usedBudgetCategories.get(cat) || 0;
                 return (
                   <ProgressBar key={cat} label={`${cat} (${used} / ${max})`} value={used} max={Number(max)} color="#111827" />
                 );
               })}
             </div>
-            {totalExpensesThisMonth(expenses) > budget.total && (
+            {hasTotalBudget && totalExpensesThisMonth(expenses) > budget.total && (
               <div style={{ marginTop: 8, color: '#b91c1c', fontSize: 13 }}>Alert: You exceeded your total budget this month.</div>
             )}
           </>

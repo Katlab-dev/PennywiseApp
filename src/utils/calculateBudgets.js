@@ -1,3 +1,5 @@
+import { findMatchingBudgetCategory } from './budgetCategories';
+
 export function monthKey(d = new Date()) {
   const year = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -32,6 +34,22 @@ export function categorySumsThisMonth(expenses, current = monthKey()) {
   return sums; // Map<Category, number>
 }
 
+export function budgetCategorySumsThisMonth(
+  expenses,
+  budgetCategories = {},
+  current = monthKey()
+) {
+  const sums = new Map();
+  for (const expense of expenses) {
+    const key = ymFromDate(expense.date);
+    if (key !== current) continue;
+    const category = findMatchingBudgetCategory(budgetCategories, expense.category);
+    if (!category) continue;
+    sums.set(category, (sums.get(category) || 0) + (Number(expense.amount) || 0));
+  }
+  return sums;
+}
+
 export function totalExpensesThisMonth(expenses, current = monthKey()) {
   let total = 0;
   for (const e of expenses) {
@@ -41,4 +59,3 @@ export function totalExpensesThisMonth(expenses, current = monthKey()) {
   }
   return total;
 }
-

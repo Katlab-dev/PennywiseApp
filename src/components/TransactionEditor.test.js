@@ -45,3 +45,45 @@ test('uses source terminology and hides category for income', () => {
   expect(screen.getByLabelText('Source')).toHaveValue('Salary');
   expect(screen.queryByLabelText('Category')).not.toBeInTheDocument();
 });
+
+test('loads and updates an existing custom expense category', async () => {
+  const onSave = jest.fn().mockResolvedValue(undefined);
+  render(
+    <TransactionEditor
+      transaction={{ ...expense, category: 'Takeaways' }}
+      onSave={onSave}
+      onCancel={jest.fn()}
+    />
+  );
+
+  expect(screen.getByLabelText('Category')).toHaveValue('Other');
+  expect(screen.getByLabelText('Custom category (optional)')).toHaveValue('Takeaways');
+
+  fireEvent.change(screen.getByLabelText('Custom category (optional)'), {
+    target: { value: '  School   supplies  ' },
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }));
+
+  await waitFor(() => expect(onSave).toHaveBeenCalledWith(
+    expect.objectContaining({ category: 'School supplies' })
+  ));
+});
+
+test('switching a custom expense to a built-in category ignores the custom value', async () => {
+  const onSave = jest.fn().mockResolvedValue(undefined);
+  render(
+    <TransactionEditor
+      transaction={{ ...expense, category: 'Takeaways' }}
+      onSave={onSave}
+      onCancel={jest.fn()}
+    />
+  );
+
+  fireEvent.change(screen.getByLabelText('Category'), { target: { value: 'Food' } });
+  expect(screen.queryByLabelText('Custom category (optional)')).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }));
+
+  await waitFor(() => expect(onSave).toHaveBeenCalledWith(
+    expect.objectContaining({ category: 'Food' })
+  ));
+});

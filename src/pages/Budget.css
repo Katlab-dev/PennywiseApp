@@ -1,0 +1,173 @@
+.budget-page {
+  --budget-soft: color-mix(in srgb, var(--brand) 8%, var(--surface));
+}
+
+.budget-builder,
+.budget-usage {
+  max-width: 820px;
+  margin-inline: auto;
+}
+
+.budget-builder__heading,
+.budget-builder__categories-header,
+.budget-builder__actions,
+.budget-usage__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.budget-builder h2,
+.budget-builder h3,
+.budget-usage h2 {
+  margin: 0;
+  color: var(--text);
+}
+
+.budget-builder h2,
+.budget-usage h2 { font-size: 19px; }
+.budget-builder h3 { font-size: 16px; }
+
+.budget-builder__heading p,
+.budget-builder__categories-header p,
+.budget-usage__heading p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.budget-builder__allocation {
+  min-width: 150px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--brand) 20%, var(--border));
+  border-radius: var(--radius-sm);
+  background: var(--budget-soft);
+  text-align: right;
+}
+
+.budget-builder__allocation span,
+.budget-builder__allocation strong { display: block; }
+.budget-builder__allocation span { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+.budget-builder__allocation strong { margin-top: 3px; color: var(--text); font-size: 18px; }
+
+.budget-builder__total { max-width: 400px; }
+
+.budget-builder__categories-header {
+  margin-top: 26px;
+  padding-top: 22px;
+  border-top: 1px solid var(--border);
+}
+
+.budget-builder__add { white-space: nowrap; }
+.budget-builder__add:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.budget-builder__empty {
+  display: grid;
+  gap: 5px;
+  margin-top: 16px;
+  padding: 24px;
+  border: 1px dashed color-mix(in srgb, var(--brand) 32%, var(--border));
+  border-radius: var(--radius-sm);
+  background: var(--budget-soft);
+  text-align: center;
+}
+
+.budget-builder__empty strong { color: var(--text); font-size: 14px; }
+.budget-builder__empty span { color: var(--muted); font-size: 13px; }
+
+.budget-builder__rows { display: grid; gap: 10px; margin-top: 16px; }
+
+.budget-category-row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) minmax(150px, 0.6fr) auto;
+  align-items: end;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+}
+
+.budget-category-row .form-field { margin: 0; }
+
+.budget-category-row__number {
+  align-self: center;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--brand) 13%, var(--surface));
+  color: var(--brand);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.budget-category-row__remove {
+  min-height: 46px;
+  padding: 0 12px;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-sm);
+  background: #fff7f7;
+  color: #b91c1c;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.budget-category-row__remove:hover { background: #fff1f2; }
+.budget-category-row__remove:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.budget-builder__matching-note {
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.budget-builder__status {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border: 1px solid #a7f3d0;
+  border-radius: var(--radius-sm);
+  background: #ecfdf5;
+  color: #047857;
+  font-size: 13px;
+}
+
+.budget-builder__actions {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.budget-builder__actions > span { color: var(--muted); font-size: 12px; }
+
+.budget-usage { margin-top: 14px; }
+.budget-usage__heading { margin-bottom: 16px; }
+.budget-usage__empty { color: var(--muted); font-size: 13px; }
+
+body.theme-dark .budget-category-row__remove {
+  border-color: #7f1d1d;
+  background: #32171b;
+  color: #fca5a5;
+}
+
+@media (max-width: 720px) {
+  .budget-builder__heading,
+  .budget-builder__categories-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .budget-builder__allocation { text-align: left; }
+  .budget-builder__add { width: 100%; }
+
+  .budget-category-row {
+    grid-template-columns: 32px minmax(0, 1fr);
+  }
+
+  .budget-category-row .form-field,
+  .budget-category-row__remove { grid-column: 2; }
+  .budget-category-row__number { grid-row: 1; }
+}

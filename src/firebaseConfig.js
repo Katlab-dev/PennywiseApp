@@ -1,5 +1,6 @@
 // src/firebaseConfig.js
 import { initializeApp } from 'firebase/app';
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -30,5 +31,24 @@ if (process.env.NODE_ENV === 'test') {
 }
 
 const app = initializeApp(firebaseConfig);
+
+const appCheckSiteKey = process.env.REACT_APP_RECAPTCHA_ENTERPRISE_SITE_KEY;
+export let appCheck = null;
+
+if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'test' && appCheckSiteKey) {
+  // Debug tokens are for local development only and must be registered in Firebase Console.
+  if (
+    process.env.NODE_ENV === 'development' &&
+    process.env.REACT_APP_FIREBASE_APPCHECK_DEBUG === 'true'
+  ) {
+    window.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+  }
+
+  appCheck = initializeAppCheck(app, {
+    provider: new ReCaptchaEnterpriseProvider(appCheckSiteKey),
+    isTokenAutoRefreshEnabled: true,
+  });
+}
+
 export const db = getFirestore(app);
 export default app;

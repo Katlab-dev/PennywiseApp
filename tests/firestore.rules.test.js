@@ -6,7 +6,13 @@ const {
   assertFails,
   assertSucceeds,
 } = require('@firebase/rules-unit-testing');
-const { doc, getDoc, setDoc, serverTimestamp } = require('firebase/firestore');
+const {
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  serverTimestamp,
+} = require('firebase/firestore');
 
 const projectId = 'pennywise-rules-test';
 let testEnv;
@@ -19,6 +25,26 @@ function validExpense(overrides = {}) {
     date: '2026-07-11',
     notes: '',
     type: 'expense',
+    createdAt: serverTimestamp(),
+    ...overrides,
+  };
+}
+
+function validBudget(overrides = {}) {
+  return {
+    total: 5000,
+    categories: { Groove: 500, Takeaways: 750 },
+    updatedAt: serverTimestamp(),
+    ...overrides,
+  };
+}
+
+function validGoal(overrides = {}) {
+  return {
+    title: 'Laptop',
+    target: 1000,
+    current: 0,
+    deadline: '',
     createdAt: serverTimestamp(),
     ...overrides,
   };
@@ -51,6 +77,18 @@ test('users can create valid expenses in their own account', async () => {
   await assertSucceeds(setDoc(doc(db, 'users/alice/expenses/expense-1'), validExpense()));
 });
 
+test('users can save a custom expense category within the category length limit', async () => {
+  const db = testEnv.authenticatedContext('alice').firestore();
+  await assertSucceeds(setDoc(
+    doc(db, 'users/alice/expenses/custom-category'),
+    validExpense({ category: 'School supplies' })
+  ));
+  await assertFails(setDoc(
+    doc(db, 'users/alice/expenses/category-too-long'),
+    validExpense({ category: 'x'.repeat(61) })
+  ));
+});
+
 test('users cannot access another user account', async () => {
   const db = testEnv.authenticatedContext('alice').firestore();
   await assertFails(setDoc(doc(db, 'users/bob/expenses/expense-1'), validExpense()));
@@ -71,22 +109,63 @@ test('invalid expense amounts and extra fields are rejected', async () => {
 
 test('goal progress cannot exceed its target', async () => {
   const db = testEnv.authenticatedContext('alice').firestore();
-  await assertFails(setDoc(doc(db, 'users/alice/goals/goal-1'), {
-    title: 'Laptop',
-    target: 10000,
-    current: 11000,
-    deadline: '',
-    createdAt: serverTimestamp(),
-  }));
+  await assertFails(setDoc(
+    doc(db, 'users/alice/goals/goal-1'),
+    validGoal({ target: 10000, current: 11000 })
+  ));
+});
+
+test('goal progress can increase cumulatively up to the target', async () => {
+  const db = testEnv.authenticatedContext('alice').firestore();
+  const goal = doc(db, 'users/alice/goals/goal-1');
+
+  await assertSucceeds(setDoc(goal, validGoal({ current: 200 })));
+  await assertSucceeds(updateDoc(goal, { current: 350, updatedAt: serverTimestamp() }));
+  await assertSucceeds(updateDoc(goal, { current: 1000, updatedAt: serverTimestamp() }));
+  await assertFails(updateDoc(goal, { current: 1000.01, updatedAt: serverTimestamp() }));
+
+  const savedGoal = await assertSucceeds(getDoc(goal));
+  if (savedGoal.data().current !== 1000) {
+    throw new Error(`Expected the saved goal total to be 1000, received ${savedGoal.data().current}.`);
+  }
 });
 
 test('only the current budget document is writable', async () => {
   const db = testEnv.authenticatedContext('alice').firestore();
-  const budget = {
-    total: 5000,
-    categories: { Food: 1000, Transport: 500, Rent: 2500, Other: 1000 },
-    updatedAt: serverTimestamp(),
-  };
+  const budget = validBudget();
   await assertSucceeds(setDoc(doc(db, 'users/alice/budgets/current'), budget));
   await assertFails(setDoc(doc(db, 'users/alice/budgets/archive'), budget));
+});
+
+test('dynamic budget categories are bounded and validated', async () => {
+  const db = testEnv.authenticatedContext('alice').firestore();
+  const currentBudget = doc(db, 'users/alice/budgets/current');
+
+  await assertSucceeds(setDoc(currentBudget, validBudget({
+    categories: { Groove: 500, 'School supplies': 900 },
+  })));
+  await assertFails(setDoc(currentBudget, validBudget({
+    categories: { ['x'.repeat(61)]: 100 },
+  })));
+  await assertFails(setDoc(currentBudget, validBudget({
+    categories: { Data: 0 },
+  })));
+  await assertFails(setDoc(currentBudget, validBudget({
+    categories: { Data: '300' },
+  })));
+  await assertFails(setDoc(currentBudget, validBudget({
+    categories: Object.fromEntries(
+      Array.from({ length: 13 }, (_, index) => [`Category ${index + 1}`, 100])
+    ),
+  })));
+});
+
+test('legacy fixed budget maps with zero placeholders remain writable during migration', async () => {
+  const db = testEnv.authenticatedContext('alice').firestore();
+  await assertSucceeds(setDoc(
+    doc(db, 'users/alice/budgets/current'),
+    validBudget({
+      categories: { Food: 1000, Transport: 0, Rent: 2500, Other: 0 },
+    })
+  ));
 });

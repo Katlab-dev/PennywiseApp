@@ -9,10 +9,17 @@ import {
   updateDoc,
   deleteDoc,
   serverTimestamp,
+  runTransaction,
   query,
   orderBy,
   onSnapshot,
 } from 'firebase/firestore';
+import { normalizeExpenseCategory } from '../utils/expenseCategories';
+import {
+  normalizeStoredBudgetCategories,
+  prepareBudgetCategories,
+} from '../utils/budgetCategories';
+import { calculateGoalContribution } from '../utils/goalContributions';
 
 const FinanceContext = createContext(null);
 
@@ -34,7 +41,7 @@ const initialState = {
   incomes: [],
   budget: {
     total: 0,
-    categories: { Food: 0, Transport: 0, Rent: 0, Other: 0 },
+    categories: {},
   },
   goals: [],
 };
@@ -61,7 +68,10 @@ function financeReducer(state, action) {
       const { total = 0, categories = {} } = action.payload || {};
       return {
         ...state,
-        budget: { total: Number(total) || 0, categories: { ...state.budget.categories, ...categories } },
+        budget: {
+          total: Number(total) || 0,
+          categories: normalizeStoredBudgetCategories(categories),
+        },
       };
     }
     case ADD_GOAL:
@@ -112,28 +122,46 @@ function cleanDate(value, field, required = true) {
 }
 
 export function FinanceProvider({ children }) {
-  const { currentUser } = useAuth();
+  const { currentUser, loading: authLoading } = useAuth();
+  const currentUid = currentUser?.uid || null;
   const [state, dispatch] = useReducer(financeReducer, initialState);
-  const [loading, setLoading] = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
+  const [dataOwnerUid, setDataOwnerUid] = React.useState(null);
   const [error, setError] = React.useState('');
+  const [dataError, setDataError] = React.useState('');
 
   // Real-time subscriptions per user
   useEffect(() => {
     let unsubs = [];
-    if (!currentUser?.uid) {
-      dispatch({ type: HYDRATE, payload: { ...initialState } });
-      setLoading(false);
-      setError('');
+
+    if (authLoading) {
+      setLoading(true);
       return () => {};
     }
 
+    if (!currentUid) {
+      dispatch({ type: HYDRATE, payload: { ...initialState } });
+      setDataOwnerUid(null);
+      setLoading(false);
+      setError('');
+      setDataError('');
+      return () => {};
+    }
+
+    // Clear any previous account's records before subscribing to the new UID.
+    dispatch({ type: HYDRATE, payload: { ...initialState } });
+    setDataOwnerUid(null);
     setLoading(true);
     setError('');
-    const { expensesCol, incomesCol, goalsCol, budgetDoc } = pathHelpers(currentUser.uid);
+    setDataError('');
+    const { expensesCol, incomesCol, goalsCol, budgetDoc } = pathHelpers(currentUid);
     const loaded = { e: false, i: false, g: false, b: false };
     const mark = (k) => {
       loaded[k] = true;
-      if (loaded.e && loaded.i && loaded.g && loaded.b) setLoading(false);
+      if (loaded.e && loaded.i && loaded.g && loaded.b) {
+        setDataOwnerUid(currentUid);
+        setLoading(false);
+      }
     };
 
     unsubs.push(
@@ -147,6 +175,7 @@ export function FinanceProvider({ children }) {
         (err) => {
           console.error('Expenses snapshot error:', err);
           setError('Unable to load expenses.');
+          setDataError('Unable to load expenses.');
           mark('e');
         }
       )
@@ -163,6 +192,7 @@ export function FinanceProvider({ children }) {
         (err) => {
           console.error('Incomes snapshot error:', err);
           setError('Unable to load income.');
+          setDataError('Unable to load income.');
           mark('i');
         }
       )
@@ -179,6 +209,7 @@ export function FinanceProvider({ children }) {
         (err) => {
           console.error('Goals snapshot error:', err);
           setError('Unable to load goals.');
+          setDataError('Unable to load goals.');
           mark('g');
         }
       )
@@ -193,7 +224,7 @@ export function FinanceProvider({ children }) {
             type: SET_BUDGET,
             payload: {
               total: Number(budget?.total) || 0,
-              categories: { ...initialState.budget.categories, ...(budget?.categories || {}) },
+              categories: normalizeStoredBudgetCategories(budget?.categories),
             },
           });
           mark('b');
@@ -201,6 +232,7 @@ export function FinanceProvider({ children }) {
         (err) => {
           console.error('Budget snapshot error:', err);
           setError('Unable to load the budget.');
+          setDataError('Unable to load the budget.');
           mark('b');
         }
       )
@@ -209,7 +241,7 @@ export function FinanceProvider({ children }) {
     return () => unsubs.forEach((u) => {
       try { u && u(); } catch {}
     });
-  }, [currentUser]);
+  }, [authLoading, currentUid]);
 
   // Actions -> Firestore
   const addExpense = useCallback(async (data) => {
@@ -220,7 +252,7 @@ export function FinanceProvider({ children }) {
       const payload = {
         title: cleanText(data.title, 'Title'),
         amount: cleanAmount(data.amount),
-        category: cleanText(data.category || 'Other', 'Category', 60),
+        category: cleanText(normalizeExpenseCategory(data.category), 'Category', 60),
         date: cleanDate(data.date, 'Date'),
         notes: cleanText(data.notes, 'Notes', 500, false),
         type: 'expense',
@@ -282,16 +314,12 @@ export function FinanceProvider({ children }) {
     try {
       setError('');
       const { budgetDoc } = pathHelpers(uid);
-      const allowedCategories = ['Food', 'Transport', 'Rent', 'Other'];
       const payload = {
         total: cleanAmount(total, 'Total budget', true),
-        categories: Object.fromEntries(allowedCategories.map((category) => [
-          category,
-          cleanAmount(categories?.[category] || 0, `${category} budget`, true),
-        ])),
+        categories: prepareBudgetCategories(categories),
         updatedAt: serverTimestamp(),
       };
-      await setDoc(budgetDoc, payload, { merge: true });
+      await setDoc(budgetDoc, payload);
     } catch (e) {
       console.error('Failed to set budget:', e);
       setError(e.message || 'Failed to save budget.');
@@ -307,7 +335,9 @@ export function FinanceProvider({ children }) {
       const cleanPatch = { ...patch };
       if ('title' in cleanPatch) cleanPatch.title = cleanText(cleanPatch.title, 'Title');
       if ('amount' in cleanPatch) cleanPatch.amount = cleanAmount(cleanPatch.amount);
-      if ('category' in cleanPatch) cleanPatch.category = cleanText(cleanPatch.category, 'Category', 60);
+      if ('category' in cleanPatch) {
+        cleanPatch.category = cleanText(normalizeExpenseCategory(cleanPatch.category), 'Category', 60);
+      }
       if ('date' in cleanPatch) cleanPatch.date = cleanDate(cleanPatch.date, 'Date');
       if ('notes' in cleanPatch) cleanPatch.notes = cleanText(cleanPatch.notes, 'Notes', 500, false);
       delete cleanPatch.type;
@@ -367,6 +397,40 @@ export function FinanceProvider({ children }) {
     }
   }, [currentUser, state.goals]);
 
+  const contributeToGoal = useCallback(async (id, amount) => {
+    const uid = requireUser(currentUser);
+    if (!id) throw new Error('Goal ID is required.');
+    const ref = doc(db, 'users', uid, 'goals', id);
+
+    try {
+      setError('');
+      const requestedContribution = cleanAmount(amount, 'Contribution');
+      const result = await runTransaction(db, async (transaction) => {
+        const snapshot = await transaction.get(ref);
+        if (!snapshot.exists()) throw new Error('This goal no longer exists.');
+
+        const goal = snapshot.data();
+        const result = calculateGoalContribution(
+          goal?.current ?? 0,
+          goal?.target,
+          requestedContribution
+        );
+
+        transaction.update(ref, {
+          current: result.nextCurrent,
+          updatedAt: serverTimestamp(),
+        });
+        return result;
+      });
+      dispatch({ type: UPDATE_GOAL, payload: { id, patch: { current: result.nextCurrent } } });
+      return result;
+    } catch (e) {
+      console.error('Failed to add goal contribution:', e);
+      setError(e.message || 'Failed to add money to the goal.');
+      throw e;
+    }
+  }, [currentUser]);
+
   const deleteTransaction = useCallback(async (id, txType) => {
     const uid = requireUser(currentUser);
     if (!id) throw new Error('Transaction ID is required.');
@@ -407,10 +471,15 @@ export function FinanceProvider({ children }) {
     return { totalIncome, totalExpenses, balance: totalIncome - totalExpenses };
   }, [state.incomes, state.expenses]);
 
+  const financeLoading = authLoading
+    || loading
+    || Boolean(currentUid && dataOwnerUid !== currentUid);
+
   const value = useMemo(
     () => ({
-      loading,
+      loading: financeLoading,
       error,
+      dataError,
       expenses: Array.isArray(state.expenses) ? state.expenses : [],
       incomes: Array.isArray(state.incomes) ? state.incomes : [],
       totals,
@@ -423,13 +492,15 @@ export function FinanceProvider({ children }) {
       goals: Array.isArray(state.goals) ? state.goals : [],
       addGoal,
       updateGoal,
+      contributeToGoal,
       updateExpense,
       updateIncome,
       deleteGoal,
     }),
     [
-      loading,
+      financeLoading,
       error,
+      dataError,
       state.expenses,
       state.incomes,
       state.budget,
@@ -441,6 +512,7 @@ export function FinanceProvider({ children }) {
       setBudget,
       addGoal,
       updateGoal,
+      contributeToGoal,
       updateExpense,
       updateIncome,
       deleteGoal,

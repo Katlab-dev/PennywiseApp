@@ -26,6 +26,7 @@ function RoutedApp() {
   const { currentUser, loading } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const isPublicLanding = location.pathname === '/auth';
 
   useEffect(() => {
     // Avoid interfering with test environment to keep tests passing
@@ -42,8 +43,8 @@ function RoutedApp() {
   }, [currentUser, loading, location.pathname, navigate]);
 
   return (
-    <div className="app-shell">
-      <AmbientBackground />
+    <div className={`app-shell${isPublicLanding ? ' app-shell--public-landing' : ''}`}>
+      {!isPublicLanding && <AmbientBackground />}
       <a className="skip-link" href="#main-content">Skip to content</a>
       <Navbar />
       <main id="main-content" className="container page-container">
