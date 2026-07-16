@@ -3,6 +3,21 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './Auth.css';
 
+export function getRegistrationErrorMessage(error) {
+  switch (error?.code) {
+    case 'auth/invalid-email':
+      return 'Please enter a valid email address.';
+    case 'auth/weak-password':
+      return 'Use a stronger password with at least 12 characters.';
+    case 'auth/network-request-failed':
+      return 'Unable to connect. Check your internet connection and try again.';
+    case 'auth/too-many-requests':
+      return 'Too many attempts. Please wait and try again.';
+    default:
+      return 'We could not create the account. Check your details or try signing in.';
+  }
+}
+
 export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -15,8 +30,17 @@ export default function Register() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
-    if (!email || !password || !confirm) {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail || !password || !confirm) {
       setError('Please fill in all fields.');
+      return;
+    }
+    if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+    if (password.length < 12) {
+      setError('Use a stronger password with at least 12 characters.');
       return;
     }
     if (password !== confirm) {
@@ -25,10 +49,10 @@ export default function Register() {
     }
     try {
       setSubmitting(true);
-      await register(email, password);
+      await register(normalizedEmail, password);
       navigate('/');
     } catch (err) {
-      setError(err?.message || 'Failed to register');
+      setError(getRegistrationErrorMessage(err));
     } finally {
       setSubmitting(false);
     }
@@ -60,6 +84,7 @@ export default function Register() {
               name="password"
               type="password"
               autoComplete="new-password"
+              minLength={12}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
@@ -73,6 +98,7 @@ export default function Register() {
               name="confirm"
               type="password"
               autoComplete="new-password"
+              minLength={12}
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               placeholder="••••••••"
@@ -93,4 +119,3 @@ export default function Register() {
     </section>
   );
 }
-

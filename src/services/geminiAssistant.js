@@ -10,7 +10,7 @@ import {
 } from '../utils/assistantPrivacy';
 import { sanitizeSafeFinancialSummary } from '../utils/assistantFinanceSummary';
 
-const MODEL_NAME = 'gemini-2.5-flash-lite';
+const MODEL_NAME = 'gemini-3.1-flash-lite';
 const AI_PROVIDER = process.env.REACT_APP_AI_PROVIDER || 'firebase';
 
 const SYSTEM_INSTRUCTION = `You are PennyWise Guide, a concise financial-education assistant for South African adults.

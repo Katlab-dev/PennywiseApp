@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Dashboard from './pages/Dashboard';
 import AddExpense from './pages/AddExpense';
@@ -22,6 +22,14 @@ import { useAuth } from './context/AuthContext';
 import AssistantFAB from './components/AssistantFAB';
 import AmbientBackground from './components/AmbientBackground';
 
+export const PUBLIC_AUTH_PATHS = ['/auth', '/login', '/register', '/reset', '/reset-password'];
+
+export function isPublicAuthPath(pathname) {
+  return PUBLIC_AUTH_PATHS.some((path) => (
+    pathname === path || pathname.startsWith(`${path}/`)
+  ));
+}
+
 function RoutedApp() {
   const { currentUser, loading } = useAuth();
   const location = useLocation();
@@ -33,9 +41,7 @@ function RoutedApp() {
     const inTest = process.env.NODE_ENV === 'test';
     if (inTest) return;
     if (loading) return;
-    const onAuthPaths = ['/auth', '/login', '/register'];
-    const isOnAuth = onAuthPaths.some((p) => location.pathname.startsWith(p));
-    if (!currentUser && !isOnAuth) {
+    if (!currentUser && !isPublicAuthPath(location.pathname)) {
       navigate('/auth', { replace: true });
     } else if (currentUser && location.pathname === '/auth') {
       navigate('/', { replace: true });
@@ -63,6 +69,7 @@ function RoutedApp() {
           <Route path="/goals" element={<Goals />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/assistant" element={<Assistant />} />
+          <Route path="*" element={<Navigate to={currentUser ? '/' : '/auth'} replace />} />
         </Routes>
       </main>
       <AssistantFAB />

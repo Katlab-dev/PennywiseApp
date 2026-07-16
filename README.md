@@ -23,9 +23,9 @@ PennyWise uses a hybrid assistant. Exact balance, spending, budget remaining, ov
 - total and category budget usage, remaining amounts, overages, and daily allowances; and
 - anonymous goal percentages and relative deadline status.
 
-The summary excludes user-created category names, raw transactions, transaction titles and notes, balance, income, Firestore IDs, account details, personal identifiers, goal names, and exact goal amounts. Before a fallback question is sent, known custom budget names, transaction titles, notes, income-source names, and goal titles are also replaced locally with safe generic labels. Gemini uses the result for PennyWise-specific explanations. Firebase AI Logic uses `gemini-2.5-flash-lite` and does not need a Gemini API key in the frontend.
+The summary excludes user-created category names, raw transactions, transaction titles and notes, balance, income, Firestore IDs, account details, personal identifiers, goal names, and exact goal amounts. Before a fallback question is sent, known custom budget names, transaction titles, notes, income-source names, and goal titles are also replaced locally with safe generic labels. Gemini uses the result for PennyWise-specific explanations. Firebase AI Logic uses the stable `gemini-3.1-flash-lite` model and does not need a Gemini API key in the frontend.
 
-Made-up planning amounts are allowed when the question clearly says they are hypothetical—for example, “Let’s say a student has R1,700.” Hypothetical requests are sent with an empty financial summary so Gemini cannot mix the fictional scenario with the signed-in user’s real PennyWise aggregates. Real first-person amounts and all account, identity, contact, and authentication details remain blocked.
+Made-up planning amounts are allowed when the question clearly says they are hypothetical—for example, “Let’s say a student has R1,700.” Hypothetical requests are sent with an empty financial summary so Gemini cannot mix the fictional scenario with the signed-in user’s real PennyWise aggregates. The input filter blocks common sensitive patterns, but it cannot recognize every possible personal detail, so users are warned not to enter personal, contact, banking, identity, or authentication information.
 
 ### Temporary local API-key demo
 
@@ -61,6 +61,17 @@ Never place the key in `src/`, use it as a `REACT_APP_*` variable, or commit `.e
 3. Add the reCAPTCHA Enterprise site key to `REACT_APP_RECAPTCHA_ENTERPRISE_SITE_KEY` in `.env.local`.
 4. In the AI Logic console settings, require authenticated users and set a per-user rate limit before production.
 
+Create an ignored `.env.production.local` on the release machine. Copy the Firebase web configuration from `.env.local`, then add:
+
+```env
+REACT_APP_AI_PROVIDER=firebase
+REACT_APP_RECAPTCHA_ENTERPRISE_SITE_KEY=your_production_site_key
+REACT_APP_FIREBASE_APPCHECK_DEBUG=false
+GENERATE_SOURCEMAP=false
+```
+
+Do not put `GEMINI_API_KEY` in the production file. Production builds fail deliberately when Firebase AI Logic is selected without a reCAPTCHA Enterprise site key.
+
 For local App Check testing, set `REACT_APP_FIREBASE_APPCHECK_DEBUG=true`, run the app, copy the debug token printed in the browser console, and register it under App Check → Manage debug tokens. Set the value back to `false` for production.
 
 Do not add a Gemini API key to `.env.local`. App Check helps reject calls from unverified clients, while Firebase Authentication and the AI Logic authenticated-user setting control who may call the model.
@@ -84,6 +95,8 @@ users/{uid}/budgets/current
 - `npm run emulators` starts the local Firebase emulator suite.
 - `npm run build` creates a production frontend build.
 - `npm run firebase:deploy` deploys Firestore rules and indexes.
+- `npm run firebase:preview` builds and deploys a temporary Hosting preview channel.
+- `npm run firebase:deploy:hosting` builds and deploys the live Hosting site.
 
 Never commit `.env.local` or `.firebaserc`. Both are ignored by Git.
 
@@ -98,7 +111,7 @@ In the project directory, you can run:
 ### `npm start`
 
 Runs the app in the development mode.\
-Open https://dropsto-auth.web.app to view it in your browser.
+Open http://localhost:3000 to view it in your browser.
 
 The page will reload when you make changes.\
 You may also see any lint errors in the console.

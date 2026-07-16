@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getAuth, sendPasswordResetEmail } from 'firebase/auth';
+import { useAuth } from '../context/AuthContext';
 import './Auth.css';
 
 export default function ResetPassword() {
@@ -8,25 +8,35 @@ export default function ResetPassword() {
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const { resetPassword } = useAuth();
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
     setStatus('');
-    if (!email) {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
       setError('Please enter your email.');
+      return;
+    }
+    if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
+      setError('Please enter a valid email address.');
       return;
     }
     try {
       setSubmitting(true);
-      const auth = getAuth();
-      await sendPasswordResetEmail(auth, email);
-      setStatus('Password reset email sent. Please check your inbox.');
+      await resetPassword(normalizedEmail);
+      setStatus('If an account exists for that email, a password reset link has been sent.');
     } catch (err) {
-      let msg = err?.message || 'Failed to send reset email';
-      if (err?.code === 'auth/user-not-found') msg = 'No account found for this email.';
-      if (err?.code === 'auth/invalid-email') msg = 'Please enter a valid email address.';
-      setError(msg);
+      if (err?.code === 'auth/user-not-found') {
+        setStatus('If an account exists for that email, a password reset link has been sent.');
+      } else if (err?.code === 'auth/network-request-failed') {
+        setError('Unable to connect. Check your internet connection and try again.');
+      } else if (err?.code === 'auth/too-many-requests') {
+        setError('Too many attempts. Please wait and try again.');
+      } else {
+        setError('We could not send the reset email. Please try again.');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -59,7 +69,7 @@ export default function ResetPassword() {
           <Link to="/login" className="link">Back to Login</Link>
         </div>
         <div className="helper" style={{ marginTop: 10 }}>
-          Tip: Ensure your app domain (e.g., localhost:3000) is in Firebase Auth → Authorized domains.
+          For your security, PennyWise does not reveal whether an email address is registered.
         </div>
       </div>
     </section>

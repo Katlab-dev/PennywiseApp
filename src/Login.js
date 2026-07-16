@@ -19,7 +19,7 @@ export function getLoginErrorMessage(error) {
     case 'auth/network-request-failed':
       return 'Unable to connect. Check your internet connection and try again.';
     default:
-      return error?.message || 'Failed to sign in. Please try again.';
+      return 'Failed to sign in. Please try again.';
   }
 }
 

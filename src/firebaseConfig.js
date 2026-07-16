@@ -33,7 +33,18 @@ if (process.env.NODE_ENV === 'test') {
 const app = initializeApp(firebaseConfig);
 
 const appCheckSiteKey = process.env.REACT_APP_RECAPTCHA_ENTERPRISE_SITE_KEY;
+const aiProvider = process.env.REACT_APP_AI_PROVIDER || 'firebase';
 export let appCheck = null;
+
+if (
+  process.env.NODE_ENV === 'production'
+  && aiProvider === 'firebase'
+  && !appCheckSiteKey
+) {
+  throw new Error(
+    'Missing production App Check configuration: set REACT_APP_RECAPTCHA_ENTERPRISE_SITE_KEY before building.'
+  );
+}
 
 if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'test' && appCheckSiteKey) {
   // Debug tokens are for local development only and must be registered in Firebase Console.

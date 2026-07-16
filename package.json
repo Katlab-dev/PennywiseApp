@@ -4,28 +4,28 @@
   "private": true,
   "proxy": "http://127.0.0.1:8787",
   "dependencies": {
-    "@testing-library/dom": "^10.4.1",
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.0",
-    "@testing-library/user-event": "^13.5.0",
     "firebase": "^12.4.0",
     "lucide-react": "^1.24.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^6.30.1",
-    "react-scripts": "5.0.1",
     "recharts": "^2.15.4",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
     "start": "react-scripts start",
+    "prebuild": "npm run validate:production-env",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "validate:production-env": "node scripts/validateProductionEnv.js",
+    "test:release-config": "node --test tests/productionEnv.test.js",
     "ai:server": "node --env-file=.env.local server/aiServer.js",
     "test:ai-server": "node --test tests/aiServer.test.js",
     "test:rules": "firebase emulators:exec --only firestore --project pennywise-rules-test \"node --test tests/firestore.rules.test.js\"",
     "emulators": "firebase emulators:start",
     "firebase:deploy": "firebase deploy --only firestore:rules,firestore:indexes",
+    "firebase:preview": "npm run build && firebase hosting:channel:deploy release-candidate",
+    "firebase:deploy:hosting": "npm run build && firebase deploy --only hosting",
     "eject": "react-scripts eject"
   },
   "engines": {
@@ -52,9 +52,14 @@
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.1",
     "@tailwindcss/postcss": "^4.1.16",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^13.5.0",
     "autoprefixer": "^10.4.21",
     "firebase-tools": "^15.23.0",
     "postcss": "^8.5.6",
+    "react-scripts": "5.0.1",
     "tailwindcss": "^4.1.16"
   }
 }

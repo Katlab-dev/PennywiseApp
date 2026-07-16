@@ -40,6 +40,12 @@ beforeEach(() => {
   });
 });
 
+test('keeps a visible warning not to enter personal details', () => {
+  render(<Assistant />);
+
+  expect(screen.getByText(/Do not enter names, addresses, contact details/i)).toBeInTheDocument();
+});
+
 test('answers personal totals locally without calling Gemini', async () => {
   render(<Assistant />);
 

@@ -48,7 +48,7 @@ export default function Assistant() {
     {
       sender: 'assistant',
       source: 'PennyWise',
-      text: 'Hi! I calculate exact PennyWise figures privately. For personalised guidance, your question is privacy-filtered before Gemini receives it with category totals, budget percentages, and anonymous goal progress — never raw transactions, account details, or personal identifiers.',
+      text: 'Hi! I calculate exact PennyWise figures privately. For broader guidance, known record labels are redacted and common sensitive patterns are screened before Gemini receives anonymous budget and goal metrics. Please do not type personal, contact, banking, identity, or authentication details.',
     }
   ]);
   const [input, setInput] = useState('');
@@ -162,7 +162,12 @@ export default function Assistant() {
             <span aria-hidden="true">◆</span>
             Finance data is incomplete. Refresh before using the assistant.
           </p>
-        ) : null}
+        ) : (
+          <p className="assistant__privacy">
+            <span aria-hidden="true">◆</span>
+            Do not enter names, addresses, contact details, account or card numbers, IDs, or passwords.
+          </p>
+        )}
         <div className="assistant__composer">
           <input
             className="assistant__input"

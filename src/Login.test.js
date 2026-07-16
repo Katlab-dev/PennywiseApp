@@ -9,7 +9,7 @@ test.each([
   expect(getLoginErrorMessage({ code })).toBe(expected);
 });
 
-test('uses the supplied message for an unknown login error', () => {
+test('does not expose the supplied message for an unknown login error', () => {
   expect(getLoginErrorMessage({ code: 'auth/unknown', message: 'Something went wrong' }))
-    .toBe('Something went wrong');
+    .toBe('Failed to sign in. Please try again.');
 });
