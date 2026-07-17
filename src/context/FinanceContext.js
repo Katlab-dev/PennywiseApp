@@ -36,6 +36,26 @@ export const SET_EXPENSES = 'SET_EXPENSES';
 export const SET_INCOMES = 'SET_INCOMES';
 export const SET_GOALS = 'SET_GOALS';
 
+export function mapSnapshotDocument(snapshot) {
+  const data = snapshot?.data?.() || {};
+  return { ...data, id: snapshot.id };
+}
+
+export function normalizeTransactionKind(value) {
+  const kind = String(value || '').trim().toLowerCase();
+  if (kind === 'income' || kind === 'expense') return kind;
+  throw new Error('Unknown transaction type.');
+}
+
+export function getTransactionDocumentPath(uid, id, txType) {
+  const kind = normalizeTransactionKind(txType);
+  const collectionName = kind === 'income' ? 'income' : 'expenses';
+  return {
+    kind,
+    segments: ['users', uid, collectionName, id],
+  };
+}
+
 const initialState = {
   expenses: [],
   incomes: [],
@@ -62,6 +82,16 @@ function financeReducer(state, action) {
       return { ...state, expenses: [action.payload, ...state.expenses] };
     case ADD_INCOME:
       return { ...state, incomes: [action.payload, ...state.incomes] };
+    case DELETE_TRANSACTION: {
+      const { id, kind } = action.payload || {};
+      if (kind === 'income') {
+        return { ...state, incomes: state.incomes.filter((item) => item.id !== id) };
+      }
+      if (kind === 'expense') {
+        return { ...state, expenses: state.expenses.filter((item) => item.id !== id) };
+      }
+      return state;
+    }
     case RESET_ALL:
       return { ...initialState };
     case SET_BUDGET: {
@@ -124,6 +154,8 @@ function cleanDate(value, field, required = true) {
 export function FinanceProvider({ children }) {
   const { currentUser, loading: authLoading } = useAuth();
   const currentUid = currentUser?.uid || null;
+  const activeUidRef = React.useRef(currentUid);
+  activeUidRef.current = currentUid;
   const [state, dispatch] = useReducer(financeReducer, initialState);
   const [loading, setLoading] = React.useState(true);
   const [dataOwnerUid, setDataOwnerUid] = React.useState(null);
@@ -168,7 +200,7 @@ export function FinanceProvider({ children }) {
       onSnapshot(
         query(expensesCol, orderBy('createdAt', 'desc')),
         (snap) => {
-          const arr = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          const arr = snap.docs.map(mapSnapshotDocument);
           dispatch({ type: SET_EXPENSES, payload: arr });
           mark('e');
         },
@@ -185,7 +217,7 @@ export function FinanceProvider({ children }) {
       onSnapshot(
         query(incomesCol, orderBy('createdAt', 'desc')),
         (snap) => {
-          const arr = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          const arr = snap.docs.map(mapSnapshotDocument);
           dispatch({ type: SET_INCOMES, payload: arr });
           mark('i');
         },
@@ -202,7 +234,7 @@ export function FinanceProvider({ children }) {
       onSnapshot(
         query(goalsCol, orderBy('createdAt', 'desc')),
         (snap) => {
-          const arr = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          const arr = snap.docs.map(mapSnapshotDocument);
           dispatch({ type: SET_GOALS, payload: arr });
           mark('g');
         },
@@ -436,12 +468,10 @@ export function FinanceProvider({ children }) {
     if (!id) throw new Error('Transaction ID is required.');
     try {
       setError('');
-      if (txType === 'Income') {
-        await deleteDoc(doc(db, 'users', uid, 'income', id));
-      } else if (txType === 'Expense') {
-        await deleteDoc(doc(db, 'users', uid, 'expenses', id));
-      } else {
-        throw new Error('Unknown transaction type.');
+      const { kind, segments } = getTransactionDocumentPath(uid, id, txType);
+      await deleteDoc(doc(db, ...segments));
+      if (activeUidRef.current === uid) {
+        dispatch({ type: DELETE_TRANSACTION, payload: { id, kind } });
       }
     } catch (e) {
       console.error('Failed to delete transaction:', e);

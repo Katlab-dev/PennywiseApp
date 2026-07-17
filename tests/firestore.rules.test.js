@@ -11,6 +11,7 @@ const {
   getDoc,
   setDoc,
   updateDoc,
+  deleteDoc,
   serverTimestamp,
 } = require('firebase/firestore');
 
@@ -35,6 +36,19 @@ function validBudget(overrides = {}) {
     total: 5000,
     categories: { Groove: 500, Takeaways: 750 },
     updatedAt: serverTimestamp(),
+    ...overrides,
+  };
+}
+
+function validIncome(overrides = {}) {
+  return {
+    title: 'Allowance',
+    amount: 1200,
+    category: '-',
+    date: '2026-07-11',
+    notes: '',
+    type: 'income',
+    createdAt: serverTimestamp(),
     ...overrides,
   };
 }
@@ -93,6 +107,36 @@ test('users cannot access another user account', async () => {
   const db = testEnv.authenticatedContext('alice').firestore();
   await assertFails(setDoc(doc(db, 'users/bob/expenses/expense-1'), validExpense()));
   await assertFails(getDoc(doc(db, 'users/bob/expenses/expense-1')));
+});
+
+test('users can delete their own expense and income records', async () => {
+  const db = testEnv.authenticatedContext('alice').firestore();
+  const expense = doc(db, 'users/alice/expenses/expense-to-delete');
+  const income = doc(db, 'users/alice/income/income-to-delete');
+
+  await assertSucceeds(setDoc(expense, validExpense()));
+  await assertSucceeds(setDoc(income, validIncome()));
+  await assertSucceeds(deleteDoc(expense));
+  await assertSucceeds(deleteDoc(income));
+
+  const deletedExpense = await assertSucceeds(getDoc(expense));
+  const deletedIncome = await assertSucceeds(getDoc(income));
+  if (deletedExpense.exists() || deletedIncome.exists()) {
+    throw new Error('Expected both transaction documents to be deleted.');
+  }
+});
+
+test('signed-out users and other accounts cannot delete transaction records', async () => {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    const adminDb = context.firestore();
+    await setDoc(doc(adminDb, 'users/alice/expenses/protected-expense'), validExpense());
+    await setDoc(doc(adminDb, 'users/alice/income/protected-income'), validIncome());
+  });
+
+  const signedOutDb = testEnv.unauthenticatedContext().firestore();
+  const bobDb = testEnv.authenticatedContext('bob').firestore();
+  await assertFails(deleteDoc(doc(signedOutDb, 'users/alice/expenses/protected-expense')));
+  await assertFails(deleteDoc(doc(bobDb, 'users/alice/income/protected-income')));
 });
 
 test('invalid expense amounts and extra fields are rejected', async () => {
