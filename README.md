@@ -2,6 +2,10 @@
 
 PennyWise is a React and Firebase personal-finance application. Firebase Authentication manages accounts and Cloud Firestore stores each user's expenses, income, budget, and savings goals.
 
+## Live app
+
+[Open PennyWise](https://pennywise-684df.web.app)
+
 ## Backend setup
 
 1. Create or select a Firebase project.
